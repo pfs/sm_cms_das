@@ -1,5 +1,9 @@
 = SM exercise for CMS DAS
 
+== Register to git at https://github.com/ 
+
+git config --global user.github <your github username>
+
 == Installation
 
 export SCRAM_ARCH=slc5_amd64_gcc462
