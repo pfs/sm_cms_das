@@ -1,10 +1,13 @@
-= SM exercise for CMS DAS
+SM exercise for CMS DAS
+=======================
 
-== Register to git at https://github.com/ 
+Register to git at https://github.com/ 
+-------------------------------------
 
 git config --global user.github <your github username>
 
-== Installation
+Installation
+------------
 
 export SCRAM_ARCH=slc5_amd64_gcc462
 
@@ -16,11 +19,12 @@ cmsenv
 
 wget -q -O - --no-check-certificate https://raw.github.com/pfs/sm_cms_das/master/TAGS.txt | sh
 
-== Creating ntuples
+Creating ntuples
+----------------
 
-== Analysis scripts
+Analysis scripts
+----------------
 
 
-
-
-== Authors
+Authors
+-------
