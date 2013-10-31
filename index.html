@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>SM CMSDAS long exercise by pfs</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>SM CMSDAS long exercise</h1>
+        <p>SM CMSDAS long exercise</p>
+
+        <p class="view"><a href="https://github.com/pfs/sm_cms_das">View the Project on GitHub <small>pfs/sm_cms_das</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/pfs/sm_cms_das/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/pfs/sm_cms_das/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/pfs/sm_cms_das">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a name="sm-exercise-for-cms-das" class="anchor" href="#sm-exercise-for-cms-das"><span class="octicon octicon-link"></span></a>SM exercise for CMS DAS</h1>
+
+<h2>
+<a name="before-starting" class="anchor" href="#before-starting"><span class="octicon octicon-link"></span></a>Before starting</h2>
+
+<p>register to git at <a href="https://github.com/">https://github.com/</a> </p>
+
+<p>git config --global user.github </p>
+
+<h2>
+<a name="installation" class="anchor" href="#installation"><span class="octicon octicon-link"></span></a>Installation</h2>
+
+<p>export SCRAM_ARCH=slc5_amd64_gcc462</p>
+
+<p>cmsrel CMSSW_5_3_12_patch2</p>
+
+<p>cd CMSSW_5_3_12_patch2/src/</p>
+
+<p>cmsenv</p>
+
+<p>wget -q -O - --no-check-certificate <a href="https://raw.github.com/pfs/sm_cms_das/master/TAGS.txt">https://raw.github.com/pfs/sm_cms_das/master/TAGS.txt</a> | sh</p>
+
+<p>scram b -j 9</p>
+
+<h2>
+<a name="creating-ntuples" class="anchor" href="#creating-ntuples"><span class="octicon octicon-link"></span></a>Creating ntuples</h2>
+
+<p>cmsRun test/runSManalyzer_data_cfg.py</p>
+
+<p>cmsRun test/runSManalyzer_mc_cfg.py</p>
+
+<p>or use the crab/multicrab files under test/grid</p>
+
+<h2>
+<a name="analysis-scripts" class="anchor" href="#analysis-scripts"><span class="octicon octicon-link"></span></a>Analysis scripts</h2>
+
+<h2>
+<a name="authors" class="anchor" href="#authors"><span class="octicon octicon-link"></span></a>Authors</h2>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/pfs">pfs</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
