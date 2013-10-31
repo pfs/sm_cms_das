@@ -24,6 +24,10 @@
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "DataFormats/Luminosity/interface/LumiSummary.h"
 
+#include "DataFormats/EgammaReco/interface/BasicCluster.h"
+#include "DataFormats/EgammaReco/interface/SuperCluster.h"
+#include "DataFormats/EgammaReco/interface/SuperClusterFwd.h"
+
 #include "SimDataFormats/GeneratorProducts/interface/GenRunInfoProduct.h"
 #include "SimDataFormats/GeneratorProducts/interface/GenEventInfoProduct.h"
 #include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
@@ -474,7 +478,7 @@ void DataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSetu
     }
 
   //
-  // missing transverse energy
+  // MISSING TRANSVERSE ENERGY
   //
   std::vector<edm::InputTag> metSources=analysisCfg_.getParameter<std::vector<edm::InputTag> >("metSource");
   summary_.metn=0;
@@ -492,8 +496,21 @@ void DataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSetu
       summary_.met_sig[summary_.metn] = significance;
       summary_.metn++;
     }    
-  
 
+  //
+  // SUPER CLUSTERS (for tag and probe)
+  //
+  summary_.scn=0;
+  edm::Handle<reco::SuperClusterCollection> superClustersH;
+  event.getByLabel(analysisCfg_.getParameter<edm::InputTag>("scSource"),superClustersH );
+  for(reco::SuperClusterCollection::const_iterator scIt = superClustersH->begin(); scIt != superClustersH->end(); scIt++)
+    {
+      summary_.scn_e[summary_.scn]  =scIt->energy();
+      summary_.scn_eta[summary_.scn]=scIt->eta();
+      summary_.scn_phi[summary_.scn]=scIt->phi();
+      summary_.scn++;
+    }
+  
   //all done here
   summary_.fill();
 }

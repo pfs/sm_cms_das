@@ -34,7 +34,7 @@ class SMEventSummary
   Float_t mc_px[MAXDATAOBJECTS],mc_py[MAXDATAOBJECTS],mc_pz[MAXDATAOBJECTS],mc_en[MAXDATAOBJECTS], mc_lxy[MAXDATAOBJECTS]; 
 
   //super clusters
-  Int_t   scn, scn_et[MAXDATAOBJECTS], scn_eta[MAXDATAOBJECTS], scn_phi[MAXDATAOBJECTS], scn_sihih[MAXDATAOBJECTS], scn_sipip[MAXDATAOBJECTS], scn_r9[MAXDATAOBJECTS];
+  Int_t   scn, scn_e[MAXDATAOBJECTS], scn_eta[MAXDATAOBJECTS], scn_phi[MAXDATAOBJECTS];
 
   //leptons
   Int_t ln;
