@@ -1,6 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 
-process = cms.Process("DataAna")
+process = cms.Process("SManalysis")
 
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 process.GlobalTag.globaltag = gtag
@@ -16,17 +16,22 @@ process.options   = cms.untracked.PSet( wantSummary = cms.untracked.bool(True),
                                         SkipEvent = cms.untracked.vstring('ProductNotFound')
                                         ) 
 
-
-process.source = cms.Source("PoolSource",
-                            inputList = cms.untracked.vstring('/store/data//Run2012A/DoubleMu/AOD//22Jan2013-v1/20000/F4C34C30-B581-E211-8269-003048FFD7A2.root') 
-                            )
+#input
+process.source = cms.Source("PoolSource", fileNames = fileList )
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
+
+#output (we won't use it)
+from PhysicsTools.PatAlgos.patEventContent_cff import patEventContent
+process.out = cms.OutputModule("PoolOutputModule",
+                               fileName = cms.untracked.string('patTuple.root'),
+                               SelectEvents   = cms.untracked.PSet( SelectEvents = cms.vstring('p') ),
+                               outputCommands = cms.untracked.vstring('drop *', *patEventContent )
+                               )
+
 
 if(isMC) : process.load("SimGeneral.HepPDTESSource.pythiapdt_cfi")
 
-process.TFileService = cms.Service("TFileService", fileName = cms.string('DataAnalysis.root'))
-
-
+process.TFileService = cms.Service("TFileService", fileName = cms.string('SManalysis.root'))
 
 ##-------------------- Import the JEC services -----------------------
 process.load('JetMETCorrections.Configuration.DefaultJEC_cff')
@@ -60,29 +65,10 @@ process.noscraping = cms.EDFilter("FilterOutScraping",
                                   thresh = cms.untracked.double(0.25)
                                )
 
-# optional MET filters
+# optional MET filters : should add more? should run in tagging mode?
 # cf.https://twiki.cern.ch/twiki/bin/view/CMS/MissingETOptionalFilters
-process.load('RecoMET.METFilters.metFilters_cff')
-process.hcalLaserEventFilter.taggingMode   = cms.bool(True)
-process.EcalDeadCellTriggerPrimitiveFilter.taggingMode=cms.bool(True)
-process.eeBadScFilter.taggingMode           = cms.bool(True)
-process.ecalLaserCorrFilter.taggingMode     = cms.bool(True)
-process.trackingFailureFilter.VertexSource  = cms.InputTag('goodOfflinePrimaryVertices')
-process.trackingFailureFilter.taggingMode   = cms.bool(True)
-process.manystripclus53X.taggedMode         = cms.untracked.bool(True)
-process.manystripclus53X.forcedValue        = cms.untracked.bool(False)
-process.toomanystripclus53X.taggedMode      = cms.untracked.bool(True)
-process.toomanystripclus53X.forcedValue     = cms.untracked.bool(False)
-process.logErrorTooManyClusters.taggedMode  = cms.untracked.bool(True)
-process.logErrorTooManyClusters.forcedValue = cms.untracked.bool(False)  
-
-process.metFilteringTaggers = cms.Sequence(process.HBHENoiseFilter*
-                                           process.hcalLaserEventFilter *
-                                           process.EcalDeadCellTriggerPrimitiveFilter *
-                                           process.eeBadScFilter *
-                                           process.ecalLaserCorrFilter *
-                                           process.trackingFailureFilter *
-                                           process.trkPOGFilters)
+process.load('CommonTools.RecoAlgos.HBHENoiseFilter_cfi')
+process.metFilteringTaggers = cms.Sequence(process.HBHENoiseFilter)
 
 #PF2PAT
 process.load("PhysicsTools.PatAlgos.patSequences_cff")
@@ -93,26 +79,22 @@ postfix = "PFlow"
 jetAlgo="AK5"
 jecLevels=['L1FastJet', 'L2Relative', 'L3Absolute']
 if(not isMC): jecLevels.append('L2L3Residual')
-
 usePF2PAT(process,
           runPF2PAT=True,
           jetAlgo=jetAlgo,
           runOnMC=isMC,
           postfix=postfix,
-          jetCorrections=('AK5PFchs', jecLevels),
+          typeIMetCorrections=True,
+          jetCorrections=('AK5PFchs', cms.vstring(jecLevels)),
           pvCollection=cms.InputTag('goodOfflinePrimaryVertices'),
-          typeIMetCorrections=False)
+          )
 
 #setup trigger matching
-#from UserCode.llvv_fwk.triggerMatching_cfg import *
-#addTriggerMatchingTo(process)
+from UserCode.sm_cms_das.triggerMatching_cff import *
+addTriggerMatchingTo(process)
 
 #custom electrons
 useGsfElectrons(process,postfix=postfix,dR="03")
-process.load('EgammaAnalysis.ElectronTools.electronIdMVAProducer_cfi')
-process.eidMVASequence = cms.Sequence(  process.mvaTrigV0 + process.mvaNonTrigV0 )
-process.patElectronsPFlow.electronIDSources.mvaTrigV0    = cms.InputTag("mvaTrigV0")
-process.patElectronsPFlow.electronIDSources.mvaNonTrigV0 = cms.InputTag("mvaNonTrigV0")
 
 #custom muons
 process.patMuonsPFlow.pfMuonSource = cms.InputTag("pfSelectedMuonsPFlow")
@@ -143,51 +125,32 @@ process.pfType1CorrectedMet.srcType1Corrections = cms.VInputTag( cms.InputTag('p
                                                                  cms.InputTag('pfJetMETcorr', 'type1')
                                                                  )
 
-process.dataAnalyzer = cms.EDAnalyzer( "DataAnalyzer",
-                                       triggerSource = cms.InputTag("TriggerResults::HLT"),
-                                       triggerPaths = cms.vstring('HLT_Mu17_Mu8_v',
-                                                                  'HLT_Mu17_TkMu8_v',
-                                                                  'HLT_IsoMu24_eta2p1_v'),
-                                       triggerCats  = cms.vint32(1313,
-                                                                 1313,
-                                                                 13),
-                                       genSource       = cms.InputTag("genParticles"),
-                                       vtxSource       = cms.InputTag("goodOfflinePrimaryVertices"),
-                                       beamSpotSource  = cms.InputTag("offlineBeamSpot"),
-                                       muonSource      = cms.InputTag("selectedPatMuonsTriggerMatch"),
-                                       electronSource  = cms.InputTag("selectedPatElectrons"),
-                                       conversionSource= cms.InputTag("allConversions"),
-                                       ebrechitsSource = cms.InputTag("reducedEcalRecHitsEB"),
-                                       eerechitsSource = cms.InputTag("reducedEcalRecHitsEE"),
-                                       jetSource       = cms.InputTag("selectedPatJetsPFlow"),
-                                       metSource       = cms.VInputTag("pfMETPFlow","pfMet","pfType1CorrectedMet","pfType1p2CorrectedMet"),
-                                       rhoSource       = cms.InputTag("kt6PFJets:rho")
-                                       )
-                
+process.smDataAnalyzer = cms.EDAnalyzer( "SMDataAnalyzer",
+                                         cfg=cms.PSet( triggerSource = cms.InputTag("TriggerResults::HLT"),
+                                                       triggerPaths = cms.vstring('HLT_Mu17_Mu8_v','HLT_Mu17_TkMu8_v','HLT_IsoMu24_eta2p1_v'),
+                                                       genSource       = cms.InputTag("genParticles"),
+                                                       vtxSource       = cms.InputTag("goodOfflinePrimaryVertices"),
+                                                       beamSpotSource  = cms.InputTag("offlineBeamSpot"),
+                                                       rhoSource       = cms.InputTag("kt6PFJets:rho"),
+                                                       muonSource      = cms.InputTag("selectedPatMuonsTriggerMatch"),
+                                                       electronSource  = cms.InputTag("selectedPatElectronsWithTrigger"),
+                                                       conversionSource= cms.InputTag("allConversions"),
+                                                       jetSource       = cms.InputTag("selectedPatJetsPFlow"),
+                                                       metSource       = cms.VInputTag("pfMETPFlow","pfMet","pfType1CorrectedMet","pfType1p2CorrectedMet"),
+                                                       scSource        = cms.InputTag("correctedHybridSuperClusters")
+                                                       )
+                                         )
 #counters for specific filters
 process.startCounter = cms.EDProducer("EventCountProducer")
-process.scrapCounter = process.startCounter.clone()
-process.vtxCounter   = process.startCounter.clone()
-process.metCounter   = process.startCounter.clone() 
 process.p = cms.Path( process.startCounter
                       *process.noscraping
-                      *process.scrapCounter
                       *process.goodOfflinePrimaryVertices
                       *process.goodVertexFilter
-                      *process.vtxCounter
                       *process.metFilteringTaggers
-		      *process.metCounter
-                      *process.eidMVASequence
                       *getattr(process,"patPF2PATSequence"+postfix)
                       *process.kt6PFJetsCentral
                       *process.type0PFMEtCorrection*process.producePFMETCorrections
-                      *process.selectedPatElectronsWithTrigger*process.selectedPatElectronsPFlowHeep
+                      *process.selectedPatElectronsWithTrigger
                       *process.selectedPatMuonsTriggerMatch 
-                      *process.dataAnalyzer
+                      *process.smDataAnalyzer
                       )
-
-	
-
-
-
-

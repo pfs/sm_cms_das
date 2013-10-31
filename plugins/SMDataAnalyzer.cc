@@ -49,11 +49,11 @@ using namespace edm;
 using namespace reco;
 
 //
-class DataAnalyzer : public edm::EDAnalyzer 
+class SMDataAnalyzer : public edm::EDAnalyzer 
 {
 
 public:
-  DataAnalyzer(const edm::ParameterSet &iConfig);
+  SMDataAnalyzer(const edm::ParameterSet &iConfig);
   void beginLuminosityBlock(const edm::LuminosityBlock &iLumi, const edm::EventSetup & iSetup );
   void endLuminosityBlock(const edm::LuminosityBlock & iLumi, const edm::EventSetup & iSetup);
   virtual void beginRun(const edm::Run & iRun, edm::EventSetup const & iSetup); 
@@ -78,14 +78,14 @@ using namespace std;
 
 
 //
-DataAnalyzer::DataAnalyzer(const edm::ParameterSet &iConfig) : obsPU_h(0), truePU_h(0)
+SMDataAnalyzer::SMDataAnalyzer(const edm::ParameterSet &iConfig) : obsPU_h(0), truePU_h(0)
 {
   //configure selection
   analysisCfg_ = iConfig.getParameter<edm::ParameterSet>("cfg");
 
   //init monitoring tools
   edm::Service<TFileService> fs;
-  summary_.attach(  fs->make<TTree>("data","Event Summary") );
+  summary_.create(  fs->make<TTree>("data","Event Summary") );
 
   obsPU_h   = fs->make<TH1F>( "pileup",     ";Pileup; Events",      100,-0.5,99.5);
   truePU_h  = fs->make<TH1F>( "pileuptrue", ";True pileup; Events", 100,-0.5,99.5);
@@ -100,7 +100,7 @@ DataAnalyzer::DataAnalyzer(const edm::ParameterSet &iConfig) : obsPU_h(0), trueP
 }
 
 //
-void DataAnalyzer::beginLuminosityBlock(const edm::LuminosityBlock&lumi, const edm::EventSetup & setup ) 
+void SMDataAnalyzer::beginLuminosityBlock(const edm::LuminosityBlock&lumi, const edm::EventSetup & setup ) 
 {
   edm::Handle<LumiSummary> l;
   lumi.getByLabel("lumiProducer", l); 
@@ -109,19 +109,19 @@ void DataAnalyzer::beginLuminosityBlock(const edm::LuminosityBlock&lumi, const e
 }
 
 //
-void DataAnalyzer::endLuminosityBlock(const edm::LuminosityBlock & iLumi, const edm::EventSetup & iSetup)
+void SMDataAnalyzer::endLuminosityBlock(const edm::LuminosityBlock & iLumi, const edm::EventSetup & iSetup)
 {
 }
 
 //
-void DataAnalyzer::beginRun(const edm::Run & iRun, const edm::EventSetup & iSetup) 
+void SMDataAnalyzer::beginRun(const edm::Run & iRun, const edm::EventSetup & iSetup) 
 {
   bool changed(true);
   hltConfig_.init(iRun, iSetup,"HLT",changed);
 }
 
 //
-void DataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSetup) 
+void SMDataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSetup) 
 {
   bool isData=event.isRealData();
 
@@ -205,14 +205,13 @@ void DataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSetu
   //
   // TRIGGER
   //
+  bool triggerHasFired(false);
   edm::InputTag trigSource              = analysisCfg_.getParameter<edm::InputTag>("triggerSource");
   std::vector<std::string> triggerPaths = analysisCfg_.getParameter<std::vector<std::string> >("triggerPaths");
-
   summary_.tn = triggerPaths.size();  
   edm::Handle<edm::TriggerResults> triggerBitsH;
   event.getByLabel( trigSource, triggerBitsH);
   const edm::TriggerNames &triggerNames = event.triggerNames( *triggerBitsH );
-  
   for(int i=0; i<summary_.tn; i++) { summary_.t_bits[i]=0; summary_.t_prescale[i]=0; }
   for (size_t itrig = 0; itrig != triggerBitsH->size(); ++itrig)
     {
@@ -225,10 +224,11 @@ void DataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSetu
 	  if(trigName.find(triggerPaths[it]) == std::string::npos) continue;
 	  summary_.t_bits[it]=true;
 	  summary_.t_prescale[it]=hltConfig_.prescaleValue(event, iSetup, trigName);
+	  triggerHasFired=true;
 	  break;
 	}
     }
-
+  if(!isData) triggerHasFired=true;
 
   //
   // VERTEX, BEAM SPOT, ENERGY DENSITY
@@ -331,7 +331,7 @@ void DataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSetu
 		  && trkLayersWithMeasurement>5 
 		  && pixelLayersWithMeasurement>1  
 		  && innerTrackChi2 < 1.8 );
-      bool isHighNew = muon::isHighPtMuon(dynamic_cast<const reco::Muon &>(*muon), dynamic_cast<const reco::Vertex &> (*primVtx)) ;
+      bool isHighNew = muon::isHighPtMuon(dynamic_cast<const reco::Muon &>(*muon), dynamic_cast<const reco::Vertex &> (*primVtx),reco::improvedTuneP) ;
       summary_.ln_idbits[summary_.ln]                     = 
 	( (int(muon->muonID("GlobalMuonPromptTight")) & 0x1)   << 0)
 	| ( (int(muon->muonID("TMLastStationLoose")) & 0x1)    << 1)
@@ -532,11 +532,11 @@ void DataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSetu
     }
   
   //all done here: fill if at least one supercluster or lepton is found
-  if(summary_.scn>0 || summary_.ln>0) summary_.fill();
+  if(triggerHasFired && (summary_.scn>0 || summary_.ln>0)) summary_.fill();
 }
 
 
 
 
-DEFINE_FWK_MODULE(DataAnalyzer);
+DEFINE_FWK_MODULE(SMDataAnalyzer);
 
