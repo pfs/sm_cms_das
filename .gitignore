@@ -11,3 +11,7 @@
 *.lai
 *.la
 *.a
+
+#Compiled python files
+*.pyc
+__init__.*
