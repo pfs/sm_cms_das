@@ -35,7 +35,6 @@
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingVertexContainer.h"
 
 #include "EgammaAnalysis/ElectronTools/interface/EGammaCutBasedEleId.h"
-#include "EGamma/EGammaAnalysisTools/interface/PFIsolationEstimator.h"
 #include "RecoEgamma/EgammaTools/interface/ConversionTools.h"
 
 #include "HLTrigger/HLTcore/interface/HLTConfigProvider.h"
@@ -70,9 +69,6 @@ private:
   
   //tool to trace prescale changes
   HLTConfigProvider hltConfig_;
-
-  //pf isolation for e/g objects
-  PFIsolationEstimator eIsolator;
 
   //event summary
   SMEventSummary summary_;
@@ -211,7 +207,6 @@ void DataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSetu
   //
   edm::InputTag trigSource              = analysisCfg_.getParameter<edm::InputTag>("triggerSource");
   std::vector<std::string> triggerPaths = analysisCfg_.getParameter<std::vector<std::string> >("triggerPaths");
-  std::vector<int> triggerCats          = analysisCfg_.getParameter<std::vector<int> >("triggerCats");
 
   summary_.tn = triggerPaths.size();  
   edm::Handle<edm::TriggerResults> triggerBitsH;
@@ -264,7 +259,7 @@ void DataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSetu
       const pat::Muon *muon         = dynamic_cast<const pat::Muon *>( muonPtr.get() );
 
       //apply minimal pre-selection
-      if(muon->pt()<10 || fabs(muon->eta())>2.5) continue;
+      if(muon->pt()<15 || fabs(muon->eta())>2.5) continue;
       
       //store information
       summary_.ln_id[summary_.ln]                         = -13*muon->charge();
@@ -291,9 +286,21 @@ void DataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSetu
 	  if ( muon->triggerObjectMatchesByPath(tempTrigName).size() > 0 ) TrigSum |= (1<<it); 
 	}
       summary_.ln_Tbits[summary_.ln] = TrigSum ;
-      
+
+      //add gen match index
       const reco::Candidate *genLep = muon->genLepton();      
-      
+      if(genLep){
+	for(Int_t imcn=0; imcn<summary_.mcn; imcn++)
+	  {
+	    if(summary_.mc_id[imcn]!=genLep->pdgId()) continue;
+	    LorentzVector p4(summary_.mc_px[imcn],summary_.mc_py[imcn],summary_.mc_pz[imcn],summary_.mc_en[imcn]);
+	    float dR=deltaR(p4.eta(),p4.phi(),genLep->eta(),genLep->phi());
+	    if(dR>0.1) continue;
+	    summary_.ln_genid[summary_.ln]=imcn;
+	    break;
+	  }
+      }
+
       //add id bits
       bool isPF( muon->isPFMuon() );
       bool isGlobal( muon->isGlobalMuon() );
@@ -350,13 +357,12 @@ void DataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSetu
   event.getByLabel( analysisCfg_.getParameter<edm::InputTag>("electronSource"), eH);
   edm::Handle<reco::ConversionCollection> convH;
   event.getByLabel( analysisCfg_.getParameter<edm::InputTag>("conversionSource"), convH);
-  EcalClusterLazyTools egLazyTool( event, iSetup, analysisCfg_.getParameter<edm::InputTag>("ebrechitsSource"), analysisCfg_.getParameter<edm::InputTag>("eerechitsSource") );
   for(size_t iele=0; iele< eH->size(); ++iele)
     {
       reco::CandidatePtr elePtr       = eH->ptrAt(iele);
       const pat::Electron *ele        = dynamic_cast<const pat::Electron *>( elePtr.get() );
       const reco::GsfElectron *gsfEle = dynamic_cast<const reco::GsfElectron *>(ele);
-      if(ele->pt()<10 || !(ele->isEB() || ele->isEE()) )                        continue;
+      if(ele->pt()<15 || !(ele->isEB() || ele->isEE()) )                        continue;
       if(ele->gsfTrack().isNull() || ele->superCluster().isNull() || gsfEle==0) continue;
       
       //store information
@@ -384,6 +390,21 @@ void DataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSetu
 	  if ( ele->triggerObjectMatchesByPath(tempTrigName).size() > 0 ) TrigSum |= (1<<it); 
 	}
       summary_.ln_Tbits[summary_.ln] = TrigSum ;
+
+      //add mc match
+      const reco::Candidate *genLep = ele->genLepton();      
+      if(genLep){
+	for(Int_t imcn=0; imcn<summary_.mcn; imcn++)
+	  {
+	    if(summary_.mc_id[imcn]!=genLep->pdgId()) continue;
+	    LorentzVector p4(summary_.mc_px[imcn],summary_.mc_py[imcn],summary_.mc_pz[imcn],summary_.mc_en[imcn]);
+	    float dR=deltaR(p4.eta(),p4.phi(),genLep->eta(),genLep->phi());
+	    if(dR>0.1) continue;
+	    summary_.ln_genid[summary_.ln]=imcn;
+	    break;
+	  }
+      }
+
 
       //save id summary
       Float_t sceta=ele->superCluster()->eta();
@@ -427,8 +448,6 @@ void DataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSetu
   summary_.jn=0;
   Handle<pat::JetCollection> jetH;
   event.getByLabel( analysisCfg_.getParameter<edm::InputTag>("jetSource"), jetH);
-  edm::Handle<reco::JetTagCollection> csvTags;
-  event.getByLabel("combinedSecondaryVertexRetrainedBJetTags",      csvTags);           
   for(size_t ijet=0; ijet<jetH->size(); ++ijet)
     {
       edm::RefToBase<pat::Jet> jetRef(edm::Ref<pat::JetCollection>(jetH,ijet));
@@ -455,19 +474,19 @@ void DataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSetu
       if(jet->pt()<10 || fabs(jet->eta())>4.7 || !passLooseId) continue;
       
       //save information
-      summary_.jn_px[summary_.jn]          = jet->px();
-      summary_.jn_py[summary_.jn]          = jet->py();
-      summary_.jn_pz[summary_.jn]          = jet->pz();
-      summary_.jn_en[summary_.jn]          = jet->energy();
-      summary_.jn_torawsf[summary_.jn]     = jet->correctedJet("Uncorrected").pt()/jet->pt();
-      summary_.jn_genflav[summary_.jn]     = jet->partonFlavour();
-      summary_.jn_genid[summary_.jn]       = genParton ? genParton->pdgId() : 0;
-      summary_.jn_genpx[summary_.jn]       = genJet    ? genJet->px()       : 0;
-      summary_.jn_genpy[summary_.jn]       = genJet    ? genJet->py()       : 0;
-      summary_.jn_genpz[summary_.jn]       = genJet    ? genJet->pz()       : 0;
-      summary_.jn_genen[summary_.jn]       = genJet    ? genJet->energy()   : 0;
-      summary_.jn_csv[summary_.jn]         = (*csvTags)[ijet].second;
-      summary_.jn_area[summary_.jn]        = jet->jetArea();
+      summary_.jn_px[summary_.jn]      = jet->px();
+      summary_.jn_py[summary_.jn]      = jet->py();
+      summary_.jn_pz[summary_.jn]      = jet->pz();
+      summary_.jn_en[summary_.jn]      = jet->energy();
+      summary_.jn_torawsf[summary_.jn] = jet->correctedJet("Uncorrected").pt()/jet->pt();
+      summary_.jn_genflav[summary_.jn] = jet->partonFlavour();
+      summary_.jn_genid[summary_.jn]   = genParton ? genParton->pdgId() : 0;
+      summary_.jn_genpx[summary_.jn]   = genJet    ? genJet->px()       : 0;
+      summary_.jn_genpy[summary_.jn]   = genJet    ? genJet->py()       : 0;
+      summary_.jn_genpz[summary_.jn]   = genJet    ? genJet->pz()       : 0;
+      summary_.jn_genen[summary_.jn]   = genJet    ? genJet->energy()   : 0;
+      summary_.jn_csv[summary_.jn]     = jet->bDiscriminator("combinedSecondaryVertexBJetTags");
+      summary_.jn_area[summary_.jn]    = jet->jetArea();
 
       //a summary of the id bits
       summary_.jn_idbits[summary_.jn] =
@@ -505,14 +524,15 @@ void DataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSetu
   event.getByLabel(analysisCfg_.getParameter<edm::InputTag>("scSource"),superClustersH );
   for(reco::SuperClusterCollection::const_iterator scIt = superClustersH->begin(); scIt != superClustersH->end(); scIt++)
     {
+      if(scIt->energy()<10 || fabs(scIt->eta())>2.5)  continue;
       summary_.scn_e[summary_.scn]  =scIt->energy();
       summary_.scn_eta[summary_.scn]=scIt->eta();
       summary_.scn_phi[summary_.scn]=scIt->phi();
       summary_.scn++;
     }
   
-  //all done here
-  summary_.fill();
+  //all done here: fill if at least one supercluster or lepton is found
+  if(summary_.scn>0 || summary_.ln>0) summary_.fill();
 }
 
 
