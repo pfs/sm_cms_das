@@ -35,6 +35,7 @@ or use the crab/multicrab files under test/grid
 Analysis scripts
 ----------------
 
+python test/wz/runEventSelection.py SManalysis.root
 
 Authors
 -------
