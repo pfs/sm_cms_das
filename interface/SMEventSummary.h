@@ -17,8 +17,7 @@ class SMEventSummary
   Int_t run, lumi, event;
   
   //trigger information
-  Int_t tn;
-  Bool_t t_bits[MAXDATAOBJECTS];
+  Int_t tn, t_bits;
   Int_t t_prescale[MAXDATAOBJECTS];
 
   //pileup information
@@ -88,7 +87,7 @@ class SMEventSummary
     
     //trigger bit
     t->SetBranchAddress("tn",        &this->tn);
-    t->SetBranchAddress("tbits",     this->t_bits);
+    t->SetBranchAddress("tbits",     &this->t_bits);
     t->SetBranchAddress("tprescale", this->t_prescale);
     
     //pileup related observables
@@ -172,7 +171,7 @@ class SMEventSummary
 
     //trigger bit
     t->Branch("tn",         &this->tn,        "tn/I");
-    t->Branch("tbits",      this->t_bits,     "tbits[tn]/O");
+    t->Branch("tbits",      &this->t_bits,    "tbits/I");
     t->Branch("tprescale",  this->t_prescale, "tprescale[tn]/I");
     
     //pileup related observables

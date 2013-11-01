@@ -127,13 +127,16 @@ process.pfType1CorrectedMet.srcType1Corrections = cms.VInputTag( cms.InputTag('p
 
 process.smDataAnalyzer = cms.EDAnalyzer( "SMDataAnalyzer",
                                          cfg=cms.PSet( triggerSource = cms.InputTag("TriggerResults::HLT"),
-                                                       triggerPaths = cms.vstring('HLT_Ele22_CaloIdL_CaloIsoVL','HLT_Mu15_eta2p1'),
+                                                       triggerPaths = cms.vstring('HLT_Ele22_CaloIdL_CaloIsoVL','HLT_Ele17_CaloIdL_CaloIsoVL',
+                                                                                  'HLT_Mu15_eta2p1','HLT_Mu15',
+                                                                                  'HLT_Mu8_Ele17_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL','HLT_Mu17_Ele8_CaloIdT_CaloIsoVL_TrkIdVL_TrkIsoVL'
+                                                                                  ),
                                                        genSource       = cms.InputTag("genParticles"),
                                                        vtxSource       = cms.InputTag("goodOfflinePrimaryVertices"),
                                                        beamSpotSource  = cms.InputTag("offlineBeamSpot"),
                                                        rhoSource       = cms.InputTag("kt6PFJets:rho"),
-                                                       muonSource      = cms.InputTag("selectedPatMuonsTriggerMatch"),
-                                                       electronSource  = cms.InputTag("selectedPatElectronsWithTrigger"),
+                                                       muonSource      = cms.InputTag("selectedPatMuonsWithTriggerMatch"),
+                                                       electronSource  = cms.InputTag("selectedPatElectronsWithTriggerMatch"),
                                                        conversionSource= cms.InputTag("allConversions"),
                                                        jetSource       = cms.InputTag("selectedPatJetsPFlow"),
                                                        metSource       = cms.VInputTag("pfMETPFlow","pfMet","pfType1CorrectedMet","pfType1p2CorrectedMet"),
@@ -150,7 +153,7 @@ process.p = cms.Path( process.startCounter
                       *getattr(process,"patPF2PATSequence"+postfix)
                       *process.kt6PFJetsCentral
                       *process.type0PFMEtCorrection*process.producePFMETCorrections
-                      *process.selectedPatElectronsWithTrigger
-                      *process.selectedPatMuonsTriggerMatch 
+                      *process.selectedPatElectronsWithTriggerMatch
+                      *process.selectedPatMuonsWithTriggerMatch 
                       *process.smDataAnalyzer
                       )

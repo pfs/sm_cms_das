@@ -212,7 +212,8 @@ void SMDataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSe
   edm::Handle<edm::TriggerResults> triggerBitsH;
   event.getByLabel( trigSource, triggerBitsH);
   const edm::TriggerNames &triggerNames = event.triggerNames( *triggerBitsH );
-  for(int i=0; i<summary_.tn; i++) { summary_.t_bits[i]=0; summary_.t_prescale[i]=0; }
+  summary_.t_bits=0;
+  for(int i=0; i<summary_.tn; i++) { summary_.t_prescale[i]=0; }
   for (size_t itrig = 0; itrig != triggerBitsH->size(); ++itrig)
     {
       if( !triggerBitsH->wasrun(itrig) ) continue;
@@ -222,7 +223,7 @@ void SMDataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSe
       for(size_t it=0; it<triggerPaths.size(); it++)
 	{
 	  if(trigName.find(triggerPaths[it]) == std::string::npos) continue;
-	  summary_.t_bits[it]=true;
+	  summary_.t_bits |= (1 << it);
 	  summary_.t_prescale[it]=hltConfig_.prescaleValue(event, iSetup, trigName);
 	  triggerHasFired=true;
 	  break;
