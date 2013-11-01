@@ -127,7 +127,7 @@ process.pfType1CorrectedMet.srcType1Corrections = cms.VInputTag( cms.InputTag('p
 
 process.smDataAnalyzer = cms.EDAnalyzer( "SMDataAnalyzer",
                                          cfg=cms.PSet( triggerSource = cms.InputTag("TriggerResults::HLT"),
-                                                       triggerPaths = cms.vstring('HLT_Mu17_Mu8_v','HLT_Mu17_TkMu8_v','HLT_IsoMu24_eta2p1_v'),
+                                                       triggerPaths = cms.vstring('HLT_Ele22_CaloIdL_CaloIsoVL','HLT_Mu15_eta2p1'),
                                                        genSource       = cms.InputTag("genParticles"),
                                                        vtxSource       = cms.InputTag("goodOfflinePrimaryVertices"),
                                                        beamSpotSource  = cms.InputTag("offlineBeamSpot"),

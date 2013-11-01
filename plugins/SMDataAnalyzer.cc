@@ -274,9 +274,17 @@ void SMDataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSe
       summary_.ln_chIso[summary_.ln]                      = muon->pfIsolationR03().sumChargedHadronPt;
       summary_.ln_puchIso[summary_.ln]                    = muon->pfIsolationR03().sumPUPt;
       summary_.ln_nhIso[summary_.ln]                      = muon->pfIsolationR03().sumNeutralHadronEt;
-      std::pair<bool,Measurement1D> ip3dRes               = mytools::getImpactParameter<reco::TrackRef>(muon->innerTrack(), primVtx, iSetup, true);
-      summary_.ln_ip3d[summary_.ln]                       = ip3dRes.second.value();
-      summary_.ln_ip3dsig[summary_.ln]                    = ip3dRes.second.significance();
+      if(!muon->innerTrack().isNull())
+	{
+	  std::pair<bool,Measurement1D> ip3dRes               = mytools::getImpactParameter<reco::TrackRef>(muon->innerTrack(), primVtx, iSetup, true);
+	  summary_.ln_ip3d[summary_.ln]                       = ip3dRes.second.value();
+	  summary_.ln_ip3dsig[summary_.ln]                    = ip3dRes.second.significance();
+	}
+      else
+	{
+	  summary_.ln_ip3d[summary_.ln]                       = -999999999;
+	  summary_.ln_ip3dsig[summary_.ln]                    = -999999999;
+	}
 
       //add trigger match
       int TrigSum(0);
@@ -371,9 +379,17 @@ void SMDataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSe
       summary_.ln_py[summary_.ln]                         = ele->py();
       summary_.ln_pz[summary_.ln]                         = ele->pz();
       summary_.ln_en[summary_.ln]                         = ele->energy();
-      std::pair<bool,Measurement1D> ip3dRes               = mytools::getImpactParameter<reco::GsfTrackRef>(ele->gsfTrack(), primVtx, iSetup, true);
-      summary_.ln_ip3d[summary_.ln]                       = ip3dRes.second.value();
-      summary_.ln_ip3dsig[summary_.ln]                    = ip3dRes.second.significance();
+      if(!ele->gsfTrack().isNull())
+	{
+	  std::pair<bool,Measurement1D> ip3dRes               = mytools::getImpactParameter<reco::GsfTrackRef>(ele->gsfTrack(), primVtx, iSetup, true);
+	  summary_.ln_ip3d[summary_.ln]                       = ip3dRes.second.value();
+	  summary_.ln_ip3dsig[summary_.ln]                    = ip3dRes.second.significance();
+	}
+      else
+	{
+	  summary_.ln_ip3d[summary_.ln]                       = -99999999999;
+	  summary_.ln_ip3dsig[summary_.ln]                    = -99999999999;
+	}
       summary_.ln_ecalIso[summary_.ln]                    = ele->dr03EcalRecHitSumEt();
       summary_.ln_hcalIso[summary_.ln]                    = ele->dr03HcalTowerSumEt();
       summary_.ln_trkIso[summary_.ln]                     = ele->dr03TkSumPt();
