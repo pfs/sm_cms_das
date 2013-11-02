@@ -35,7 +35,14 @@ or use the crab/multicrab files under test/grid
 Analysis scripts
 ----------------
 
-python test/wz/runEventSelection.py SManalysis.root
+To analyze a single file
+
+python test/wz/runEventSelection.py -i file.root
+
+To analyze a set of files for full analysis
+
+python runFullAnalysis.py -e runEventSelection.py -i /store/cmst3/user/psilva/CMSDAS -j wz_samples.json -o ./results 
+
 
 Authors
 -------

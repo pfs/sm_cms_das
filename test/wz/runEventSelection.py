@@ -10,8 +10,9 @@ from ROOT import gSystem
 from ROOT import TTree, TFile, TLorentzVector, TH1F, TH2F
 
 class Monitor:
-    def __init__(self,outUrl):
+    def __init__(self,outUrl,norm):
         self.outUrl=outUrl
+        self.norm=norm
         self.allHistos={}
     def addToMonitor(self,h,tag):
         h.SetDirectory(0)
@@ -40,6 +41,7 @@ class Monitor:
         fOut=TFile.Open(self.outUrl,'RECREATE')
         for key in self.allHistos:
             for tag in self.allHistos[key] :
+                self.allHistos[key][tag].Scale(self.norm)
                 self.allHistos[key][tag].Write()
         fOut.Close()
                 
@@ -72,7 +74,7 @@ class VectorBosonCand:
         if len(self.m_legs)<2: return
         p1=self.m_legs[0].p4
         p2=self.m_legs[1].p4
-        self.p4=p1+p1
+        self.p4=p1+p2
         dphi=p1.DeltaPhi(p2)
         self.mt=math.sqrt(2*p1.Pt()*p2.Pt()*(1-math.cos(dphi)))
     def getTag(self) :
@@ -166,7 +168,9 @@ def buildVcand(eFire,mFire,emFire,leptonCands,met) :
 
     return vCand
 
-
+"""
+Runs the event selection over the trees
+"""
 def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec=-1) :
 
     gSystem.ExpandPathName(fileName)
@@ -183,8 +187,8 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
     tree=file.Get("smDataAnalyzer/data")
     nev = tree.GetEntries()
 
-    outUrl=fileName.replace('.root','_sel.root')
-    monitor=Monitor(outUrl)
+    outUrl=outputDir+'/'+os.path.basename(fileName)
+    monitor=Monitor(outUrl,yieldsNorm)
     monitor.addHisto('nvtx',  ';Vertices;Events', 50,0,50)
     monitor.addHisto('vmass', ';Mass [GeV];Events',50,0,250)
     monitor.addHisto('vmt',   ';Transverse mass [GeV];Events',50,0,250)
@@ -201,7 +205,7 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
         #select the leptons
         leptonCands=[]
         for l in xrange(0,tree.ln) :
-            lep=LeptonCand(tree.ln_id[l],tree.ln_px[l],tree.ln_py[l],tree.ln_px[l],tree.ln_en[l])
+            lep=LeptonCand(tree.ln_id[l],tree.ln_px[l],tree.ln_py[l],tree.ln_pz[l],tree.ln_en[l])
             if lep.p4.Pt()<20 or math.fabs(lep.p4.Eta())>2.5 : continue
             isLoose, isLooseIso, isTight, isTightIso = selectLepton(tree.ln_id[l],tree.ln_idbits[l],tree.ln_gIso[l],tree.ln_chIso[l],tree.ln_nhIso[l],tree.ln_puchIso[l],lep.p4.Pt())
             lep.selectionInfo(isLoose, isLooseIso, isTight, isTightIso)

@@ -17,7 +17,7 @@ def getByLabel(desc,key,defaultVal=None) :
 """
 Loop over the inputs and launch jobs
 """
-def runFullAnalysis(myExec, inDir, jsonUrl, params, outdir, queue) :
+def runFullAnalysis(myExec, inDir, jsonUrl, params, outdir, onlyTag, queue) :
 
     if myExec.find('.py')>0 : myExec='python %s'%myExec
     
@@ -32,6 +32,7 @@ def runFullAnalysis(myExec, inDir, jsonUrl, params, outdir, queue) :
             data = desc['data']
             for d in data :
                 dtag = getByLabel(d,'dtag','')
+                if onlyTag!='' and dtag.find(onlyTag)<0 : continue
                 split=getByLabel(d,'split',1)
                 xsec = -1
                 if not isData : xsec=getByLabel(d,'xsec',-1)
@@ -57,6 +58,7 @@ def main():
     parser.add_option('-s', '--sub'        ,    dest='queue'              , help='Batch queue (optional)'                 , default='')
     parser.add_option('-j', '--json'       ,    dest='json'               , help='A json file with the samples to analyze', default=None)
     parser.add_option('-o', '--out'        ,    dest='outdir'             , help='Output directory'                       , default='./results')
+    parser.add_option('-t', '--tag'        ,    dest='onlyTag'            , help='Only matching'                          , default='')
     parser.add_option('-p', '--pars'       ,    dest='params'             , help='Extra parameters for the job'           , default='')
     (opt, args) = parser.parse_args()
 
@@ -65,7 +67,7 @@ def main():
         sys.exit(1)
 
     os.system('mkdir -p %s'%opt.outdir)
-    runFullAnalysis(myExec=opt.exe, inDir=opt.inDir, jsonUrl=opt.json, params=opt.params, outdir=opt.outdir, queue=opt.queue)
+    runFullAnalysis(myExec=opt.exe, inDir=opt.inDir, jsonUrl=opt.json, params=opt.params, outdir=opt.outdir, onlyTag=opt.onlyTag, queue=opt.queue)
 
 if __name__ == "__main__":
     main()
