@@ -314,15 +314,31 @@ void SMDataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSe
       bool isPF( muon->isPFMuon() );
       bool isGlobal( muon->isGlobalMuon() );
       bool isTracker( muon->isTrackerMuon() );
-      Float_t innerTrackChi2             = isTracker ? muon->innerTrack()->normalizedChi2()                        : 0.;
-      Float_t trkchi2                    = isGlobal ? muon->globalTrack()->normalizedChi2()                        : innerTrackChi2;
-      Float_t trkValidPixelHits          = isGlobal ? muon->globalTrack()->hitPattern().numberOfValidPixelHits()   : muon->innerTrack()->hitPattern().numberOfValidPixelHits();
-      Float_t d0                         = fabs(muon->muonBestTrack()->dxy(primVtx->position()));
-      Float_t dZ                         = fabs(muon->muonBestTrack()->dz(primVtx->position()));
-      Float_t validMuonHits              = isGlobal ? muon->globalTrack()->hitPattern().numberOfValidMuonHits() : 0.;
+      Float_t innerTrackChi2 = isTracker && !muon->innerTrack().isNull() ? 
+	muon->innerTrack()->normalizedChi2() :                       
+	0.;
+      Float_t trkchi2 = isGlobal  && !muon->globalTrack().isNull() ? 
+	muon->globalTrack()->normalizedChi2() : 
+	innerTrackChi2;
+      Float_t trkValidPixelHits = isGlobal && !muon->globalTrack().isNull() ? 
+	muon->globalTrack()->hitPattern().numberOfValidPixelHits() : 
+	muon->innerTrack()->hitPattern().numberOfValidPixelHits();
+      Float_t d0  = !muon->muonBestTrack().isNull() ?
+	fabs(muon->muonBestTrack()->dxy(primVtx->position())) :
+	-999999.;
+      Float_t dZ = !muon->muonBestTrack().isNull() ?
+	fabs(muon->muonBestTrack()->dz(primVtx->position())) :
+	-999999.;
+      Float_t validMuonHits = isGlobal &&  !muon->globalTrack().isNull()?
+	muon->globalTrack()->hitPattern().numberOfValidMuonHits() : 
+	0.;
       Float_t nMatchedStations           = muon->numberOfMatchedStations();
-      Float_t trkLayersWithMeasurement   = muon->track()->hitPattern().trackerLayersWithMeasurement();
-      Float_t pixelLayersWithMeasurement = isTracker ? muon->innerTrack()->hitPattern().pixelLayersWithMeasurement() : 0.;
+      Float_t trkLayersWithMeasurement   = !muon->track().isNull() ?
+	muon->track()->hitPattern().trackerLayersWithMeasurement() :
+	0.;
+      Float_t pixelLayersWithMeasurement = isTracker && !muon->innerTrack().isNull() ? 
+	muon->innerTrack()->hitPattern().pixelLayersWithMeasurement() : 
+	0.;
       bool isLoose( isPF && (isGlobal || isTracker) );
       bool isTight( isPF                                 
 		    && isGlobal              
@@ -340,7 +356,11 @@ void SMDataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSe
 		  && trkLayersWithMeasurement>5 
 		  && pixelLayersWithMeasurement>1  
 		  && innerTrackChi2 < 1.8 );
-      bool isHighNew = muon::isHighPtMuon(dynamic_cast<const reco::Muon &>(*muon), dynamic_cast<const reco::Vertex &> (*primVtx),reco::improvedTuneP) ;
+      bool isHighNew(false);
+      try{
+	isHighNew=muon::isHighPtMuon(dynamic_cast<const reco::Muon &>(*muon), dynamic_cast<const reco::Vertex &> (*primVtx),reco::improvedTuneP) ;
+      }catch(...){
+      }
       summary_.ln_idbits[summary_.ln]                     = 
 	( (int(muon->muonID("GlobalMuonPromptTight")) & 0x1)   << 0)
 	| ( (int(muon->muonID("TMLastStationLoose")) & 0x1)    << 1)
