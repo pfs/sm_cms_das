@@ -111,6 +111,14 @@ void SMDataAnalyzer::beginLuminosityBlock(const edm::LuminosityBlock&lumi, const
 //
 void SMDataAnalyzer::endLuminosityBlock(const edm::LuminosityBlock & iLumi, const edm::EventSetup & iSetup)
 {
+  try{
+    edm::Handle<edm::MergeableCounter> ctrHandle;
+    iLumi.getByLabel("startCounter", ctrHandle);
+    if(ctrHandle.isValid()){
+      cutflow_h->Fill(0.,ctrHandle->value);
+    }
+  }catch(std::exception){
+  }
 }
 
 //
@@ -244,6 +252,8 @@ void SMDataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSe
   summary_.rho = *rho;
   if(summary_.nvtx==0) return;
   reco::VertexRef primVtx(vtxH,0);
+  if(primVtx.isNull()) return;
+  cutflow_h->Fill(1);
 
   //
   // CHARGED LEPTONS

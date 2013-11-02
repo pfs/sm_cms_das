@@ -63,7 +63,7 @@ process.noscraping = cms.EDFilter("FilterOutScraping",
                                   debugOn = cms.untracked.bool(False),
                                   numtrack = cms.untracked.uint32(10),
                                   thresh = cms.untracked.double(0.25)
-                               )
+                                  )
 
 # optional MET filters : should add more? should run in tagging mode?
 # cf.https://twiki.cern.ch/twiki/bin/view/CMS/MissingETOptionalFilters

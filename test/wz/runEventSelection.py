@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import optparse
 import os
 import sys
 import getopt
@@ -166,10 +167,19 @@ def buildVcand(eFire,mFire,emFire,leptonCands,met) :
     return vCand
 
 
-def selectEvents(fileName) :
+def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec=-1) :
 
     gSystem.ExpandPathName(fileName)
     file=TFile.Open(fileName)
+    yieldsNorm=1.0
+    if xsec>0 :
+        origEvents=file.Get('smDataAnalyzer/cutflow').GetBinContent(1)
+        if origEvents==0 :
+            print '[Warning] normalization is requested but got 0 for original number of events - ignoring'
+        else :
+            yieldsNorm=xsec/origEvents
+            print 'Applying overall normalization for xsec=%f pb and # original events=%d'%(xsec,origEvents)
+    
     tree=file.Get("smDataAnalyzer/data")
     nev = tree.GetEntries()
 
@@ -218,13 +228,23 @@ def selectEvents(fileName) :
     monitor.close()
 
 
-def main(fileName=None):
-    if fileName is None and len(sys.argv)>1:
-        fileName = sys.argv[1]
-    else :
-        print 'selectEvents.py file'
+def main():
 
-    selectEvents(fileName)
+    usage = 'usage: %prog [options]'
+    parser = optparse.OptionParser(usage)
+    parser.add_option('-i', '--inputFile'  ,    dest='input'  ,     help='Name of the local input file',                    default=None)
+    parser.add_option('-p', '--saveProbes' ,    dest='saveProbes',  help='Save probes tree for tag and probe',              default=False, action="store_true")
+    parser.add_option('-t', '--saveSummary' ,   dest='saveSummary', help='Save summary with selected events',               default=False, action="store_true")
+    parser.add_option('-o', '--outputDir'  ,    dest='outputDir'  , help='Name of the local output directory (default=./)', default='./')
+    parser.add_option('-x', '--xsec',           dest='xsec'       , help='If given is used to normalize the final histograms (default=-1)', default=-1.0, type='float')
+    (opt, args) = parser.parse_args()
+
+    if opt.input is None :
+        parser.print_help()
+        sys.exit(1)
+
+    print '[runEventSelection] analyzing %s'%opt.input 
+    selectEvents(fileName=opt.input, saveProbes=opt.saveProbes, saveSummary=opt.saveSummary, outputDir=opt.outputDir, xsec=opt.xsec)
 
 
 if __name__ == "__main__":
