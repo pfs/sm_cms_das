@@ -322,7 +322,9 @@ void SMDataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSe
 	innerTrackChi2;
       Float_t trkValidPixelHits = isGlobal && !muon->globalTrack().isNull() ? 
 	muon->globalTrack()->hitPattern().numberOfValidPixelHits() : 
-	muon->innerTrack()->hitPattern().numberOfValidPixelHits();
+	!muon->innerTrack().isNull() ?
+	muon->innerTrack()->hitPattern().numberOfValidPixelHits():
+	-99999;
       Float_t d0  = !muon->muonBestTrack().isNull() ?
 	fabs(muon->muonBestTrack()->dxy(primVtx->position())) :
 	-999999.;
