@@ -5,15 +5,16 @@ import os
 import sys
 import getopt
 import math
-
+import array
 from ROOT import gSystem
-from ROOT import TTree, TFile, TLorentzVector, TH1F, TH2F
+from ROOT import TTree, TFile, TLorentzVector, TH1F, TH2F, TObjArray, TNtuple
 
 class Monitor:
     def __init__(self,outUrl,norm):
         self.outUrl=outUrl
         self.norm=norm
         self.allHistos={}
+        self.extra=TObjArray()
     def addToMonitor(self,h,tag):
         h.SetDirectory(0)
         name=h.GetName()
@@ -23,6 +24,8 @@ class Monitor:
             self.allHistos[name].update({tag:h})
         else:
             self.allHistos[name]={'base':h}
+    def addObject(self,obj):
+        self.extra.Add(obj)
     def addHisto(self,name,title,nx,xmin,xmax) :
         h=TH1F(name,title,nx,xmin,xmax)
         self.addToMonitor(h,'base')
@@ -43,9 +46,15 @@ class Monitor:
             for tag in self.allHistos[key] :
                 self.allHistos[key][tag].Scale(self.norm)
                 self.allHistos[key][tag].Write()
+        for i in xrange(0,self.extra.GetEntriesFast()):
+            obj=self.extra.At(i)
+            obj.SetDirectory(fOut)
+            obj.Write()
         fOut.Close()
                 
-            
+"""
+Wrapper for a lepton candidate object
+"""
 class LeptonCand:
     def __init__(self,id,px,py,pz,en):
         self.id=id
@@ -63,6 +72,9 @@ class LeptonCand:
         self.passTight=passTight
         self.passTightIso=passTightIso
 
+"""
+Wrapper for a vector boson candidate
+"""
 class VectorBosonCand:
     def __init__(self, id,tag):
         self.id=id
@@ -109,7 +121,6 @@ def selectLepton(id, idbits, gIso, chIso, nhIso, puchIso, pt) :
         if relIso<0.12: isTightIso=True
 
     return isLoose, isLooseIso, isTight, isTightIso
-
 
 def buildVcand(eFire,mFire,emFire,leptonCands,met) :
 
@@ -195,6 +206,11 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
     monitor.addHisto('vpt',   ';Boson transverse momentum [GeV];Events',50,0,250)
     monitor.addHisto('leg1pt',';Transverse momentum [GeV];Events',50,0,250)
     monitor.addHisto('leg2pt',';Transverse momentum [GeV];Events',50,0,250)
+    summaryTuple=None
+    if saveSummary :
+        summaryTuple=TNtuple('data','summary','cat:weight:v_mass:v_mt:v_pt:leg1_pt:leg1_eta:leg1_phi:leg2_pt:leg2_eta:leg2_phi')
+        summaryTuple.SetDirectory(0)
+        monitor.addObject(summaryTuple)
 
     for iev in range(0,nev) :
         tree.GetEntry(iev)
@@ -227,6 +243,14 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
         monitor.fill('vpt',    tags, vCand.p4.Pt(),           weight)
         monitor.fill('leg1pt', tags, vCand.m_legs[0].p4.Pt(), weight)
         monitor.fill('leg2pt', tags, vCand.m_legs[1].p4.Pt(), weight)
+
+        if saveSummary :
+            values=[vCand.id, weight,
+                    vCand.p4.M(), vCand.mt, vCand.p4.Pt(),
+                    vCand.m_legs[0].p4.Pt(),vCand.m_legs[0].p4.Eta(),vCand.m_legs[0].p4.Phi(),
+                    vCand.m_legs[1].p4.Pt(),vCand.m_legs[1].p4.Eta(),vCand.m_legs[1].p4.Phi()
+                    ]
+            summaryTuple.Fill(array.array("f",values))
                
     file.Close()
     monitor.close()
