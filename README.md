@@ -41,7 +41,11 @@ python test/wz/runEventSelection.py -i file.root
 
 To analyze a set of files for full analysis
 
-python runFullAnalysis.py -e runEventSelection.py -i /store/cmst3/user/psilva/CMSDAS -j wz_samples.json -o ./results 
+python test/wz/runFullAnalysis.py -e test/wz/runEventSelection.py -i /store/cmst3/user/psilva/CMSDAS -j wz_samples.json -o ./results -p "-p -t" -s 8nh
+
+Run tag and probe
+
+cmsRun test/wz/runTagAndProbe_cfg.py 
 
 
 Authors
