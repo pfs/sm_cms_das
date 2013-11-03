@@ -17,9 +17,15 @@ def getByLabel(desc,key,defaultVal=None) :
 """
 Loop over the inputs and launch jobs
 """
-def runFullAnalysis(myExec, inDir, jsonUrl, params, outdir, onlyTag, queue) :
+def runFullAnalysis(myExec, inDir, jsonUrl, params, outdir, onlyTag, queue='') :
 
-    if myExec.find('.py')>0 : myExec='python %s'%myExec
+    curWorkDir=os.getcwd()
+    if not os.path.isabs(myExec) :
+        myExec=curWorkDir+'/'+myExec
+    if myExec.find('.py')>0 :
+        myExec='python %s'%myExec
+    if not os.path.isabs(outdir) :
+        outdir=curWorkDir+'/'+outdir
     
     jsonFile = open(jsonUrl,'r')
     procList=json.load(jsonFile,encoding='utf-8').items()
@@ -38,16 +44,27 @@ def runFullAnalysis(myExec, inDir, jsonUrl, params, outdir, onlyTag, queue) :
                 if not isData : xsec=getByLabel(d,'xsec',-1)
 
                 for segment in range(0,split) :
-                    if(split==1): 
-                        eventsFile=inDir + '/' + dtag + '.root'
+                    eventsFile=dtag
+                    if split>1:
+                        eventsFile=dtag + '_' + str(segment)
+                    eventsFileUrl=inDir+'/'+eventsFile+'.root'
+                    if(eventsFileUrl.find('/store/')==0)  :
+                        eventsFileUrl = commands.getstatusoutput('cmsPfn ' + eventsFileUrl)[1]
+
+                    cmd='%s -i %s -o %s -x %f %s'%(myExec,eventsFileUrl,outdir,xsec,params)
+                    if queue=='' :
+                        os.system(cmd)
                     else:
-                        eventsFile=inDir + '/' + dtag + '_' + str(segment) + '.root'
+                        f = open('%s/%s.sh'%(outdir,eventsFile),'w')
+                        f.write('#!/bin/bash\n')
+                        f.write('cd %s/src\n'%os.environ['CMSSW_BASE'])
+                        f.write('export SCRAM_ARCH=%s\n'%os.environ['SCRAM_ARCH'])
+                        f.write('eval `scram r -sh`\n')
+                        f.write(cmd+'\n')
+                        f.close()
+                        os.system('bsub -q %s %s/%s.sh'%(queue,outdir,eventsFile))
+                        
 
-                    if(eventsFile.find('/store/')==0)  :
-                        eventsFile = commands.getstatusoutput('cmsPfn ' + eventsFile)[1]
-
-                    cmd='%s -i %s -o %s -x %f %s'%(myExec,eventsFile,outdir,xsec,params)
-                    os.system(cmd)
 
 def main():
 

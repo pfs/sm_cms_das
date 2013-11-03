@@ -6,6 +6,7 @@ import sys
 import getopt
 import math
 import array
+import random
 from ROOT import gSystem
 from ROOT import TTree, TFile, TLorentzVector, TH1F, TH2F, TObjArray, TNtuple
 
@@ -48,8 +49,11 @@ class Monitor:
                 self.allHistos[key][tag].Write()
         for i in xrange(0,self.extra.GetEntriesFast()):
             obj=self.extra.At(i)
-            obj.SetDirectory(fOut)
+            outDir=fOut.mkdir(obj.GetName())
+            outDir.cd()
+            obj.SetDirectory(outDir)
             obj.Write()
+            fOut.cd()
         fOut.Close()
                 
 """
@@ -93,12 +97,10 @@ class VectorBosonCand:
         return self.tag
 
 def decodeTriggerWord(trigBits) :
-    eFire     = (((trigBits >> 0) & 0x1)>0)
-    eCtrlFire = (((trigBits >> 1) & 0x1)>0)
-    mFire     = (((trigBits >> 2) & 0x1)>0)
-    mCtrlFire = (((trigBits >> 3) & 0x1)>0)
+    eFire     = (((trigBits >> 0) & 0x1)>0) or (((trigBits >> 1) & 0x1)>0)
+    mFire     = (((trigBits >> 2) & 0x1)>0) or (((trigBits >> 3) & 0x1)>0)
     emFire    = (((trigBits >> 4) & 0x3)>0)
-    return eFire,eCtrlFire,mFire,mCtrlFire,emFire
+    return eFire,mFire,emFire
 
 def selectLepton(id, idbits, gIso, chIso, nhIso, puchIso, pt) :
     isLoose=False
@@ -206,28 +208,118 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
     monitor.addHisto('vpt',   ';Boson transverse momentum [GeV];Events',50,0,250)
     monitor.addHisto('leg1pt',';Transverse momentum [GeV];Events',50,0,250)
     monitor.addHisto('leg2pt',';Transverse momentum [GeV];Events',50,0,250)
+
     summaryTuple=None
     if saveSummary :
         summaryTuple=TNtuple('data','summary','cat:weight:v_mass:v_mt:v_pt:leg1_pt:leg1_eta:leg1_phi:leg2_pt:leg2_eta:leg2_phi')
         summaryTuple.SetDirectory(0)
         monitor.addObject(summaryTuple)
 
-    for iev in range(0,nev) :
+    probesTuple=None
+    probesId   = array.array( 'f', [ 0 ] )
+    probesPt   = array.array( 'f', [ 0 ] )
+    probesEta  = array.array( 'f', [ 0 ] )
+    probesPhi  = array.array( 'f', [ 0 ] )
+    probesNvtx = array.array( 'f', [ 0 ] )
+    probesMass = array.array( 'f', [ 0 ] )
+    probesPassLoose = array.array( 'i', [ 0 ] )
+    probesPassTight = array.array( 'i', [ 0 ] )
+    probesFireTrigger = array.array( 'i', [ 0 ] )
+    if saveProbes :
+        probesTuple=TTree('tandp','summary for tandp')
+        probesTuple.Branch( 'id', probesId, 'id/F' )
+        probesTuple.Branch( 'pt', probesPt, 'pt/F' )
+        probesTuple.Branch( 'eta', probesEta, 'eta/F' )
+        probesTuple.Branch( 'phi', probesPhi, 'phi/F' )
+        probesTuple.Branch( 'nvtx', probesNvtx, 'nvtx/F' )
+        probesTuple.Branch( 'mass', probesMass, 'mass/F' )
+        probesTuple.Branch( 'passLoose', probesPassLoose, 'passLoose/I' )
+        probesTuple.Branch( 'passTight', probesPassTight, 'passTight/I' )
+        probesTuple.Branch( 'fireTrigger', probesFireTrigger, 'fireTrigger/I' )
+        probesTuple.SetDirectory(0)
+        monitor.addObject(probesTuple)
+
+    #
+    # LOOP OVER THE EVENTS 
+    #
+    for iev in range(0,5000+0*nev) :
         tree.GetEntry(iev)
 
         #get triggers that fired
-        eFire,eCtrlFire,mFire,mCtrlFire,emFire=decodeTriggerWord(tree.tbits)
+        eFire,mFire,emFire=decodeTriggerWord(tree.tbits)
 
         #select the leptons
         leptonCands=[]
+        validTags=[]
         for l in xrange(0,tree.ln) :
             lep=LeptonCand(tree.ln_id[l],tree.ln_px[l],tree.ln_py[l],tree.ln_pz[l],tree.ln_en[l])
-            if lep.p4.Pt()<20 or math.fabs(lep.p4.Eta())>2.5 : continue
+            if lep.p4.Pt()<20 : continue
+            if math.fabs(tree.ln_id[l])==11 :
+                if math.fabs(lep.p4.Eta())>2.5 : continue
+                if math.fabs(lep.p4.Eta())>1.4442 and math.fabs(lep.p4.Eta())<1.566 : continue
+            if math.fabs(tree.ln_id[l])==13 :
+                if math.fabs(lep.p4.Eta())>2.1 : continue
             isLoose, isLooseIso, isTight, isTightIso = selectLepton(tree.ln_id[l],tree.ln_idbits[l],tree.ln_gIso[l],tree.ln_chIso[l],tree.ln_nhIso[l],tree.ln_puchIso[l],lep.p4.Pt())
             lep.selectionInfo(isLoose, isLooseIso, isTight, isTightIso)
             lep.triggerInfo(tree.ln_Tbits[l])
             leptonCands.append(lep)
+
+            if not saveProbes: continue
+            if not isTight or not isTightIso or lep.Tbits==0 : continue
+            if math.fabs(lep.id)==11 and not eFire: continue
+            if math.fabs(lep.id)==13 and not mFire: continue
+            validTags.append( len(leptonCands)-1 )  
+
+        #check if probes tree should be saved 
+        if saveProbes and len(validTags)>0:
+
+            # choose a random tag 
+            tagIdx=random.choice(validTags)
+            tag=leptonCands[tagIdx]
+
+            #find probe
+            probe=None
+            for l in xrange(0,len(leptonCands)) :
+                if l==tagIdx: continue
+                if math.fabs(tag.id)!=math.fabs(leptonCands[l].id) : continue
+                probe=leptonCands[l]
+                break
+
+            #for electrons save superclusters if probe is not found
+            matchToEle=1
+            if math.fabs(tag.id)==11 and probe is None :
+                hasScMatch=0
+                for sc in xrange(0,tree.scn) :
+                    sc_en=tree.scn_e[sc]
+                    sc_eta=tree.scn_eta[sc]
+                    sc_phi=tree.scn_phi[sc]
+                    sc_pt=sc_en/math.cosh(sc_eta)
+                    sc_p4=TLorentzVector(0,0,0,0)
+                    sc_p4.SetPtEtaPhiE(sc_pt,sc_eta,sc_phi,sc_en)
+                    lscp4=tag.p4+sc_p4
+                    if math.fabs(lscp4.M()-91)>30 : continue
+                    scCand=LeptonCand(tag.id,sc_p4.Px(),sc_p4.Py(),sc_p4.Pz(),sc_p4.E())
+                    scCand.selectionInfo(0,0,0,0)
+                    scCand.triggerInfo(0)
+                    probe=scCand
+                    break
+            if math.fabs(tag.id)==13 : matchToEle=0
             
+            #save info
+            if probe is not None:
+                tpp4=tag.p4+probe.p4
+                if math.fabs(tpp4.M()-91)<30 :
+                    probesId[0]=probe.id
+                    probesPt[0]=probe.p4.Pt()
+                    probesEta[0]=probe.p4.Eta()
+                    probesPhi[0]=probe.p4.Phi()
+                    probesNvtx[0]=tree.nvtx
+                    probesMass[0]=tpp4.M()
+                    probesPassLoose[0]=(probe.passLoose and probe.passLooseIso)
+                    probesPassTight[0]=(probe.passTight and probe.passTightIso)
+                    probesFireTrigger[0]=(probe.Tbits>0)
+                    probesTuple.Fill()
+
         # met
         metCand=LeptonCand(0,tree.met_pt[0]*math.cos(tree.met_phi[0]),tree.met_pt[0]*math.sin(tree.met_phi[0]),0,tree.met_pt[0])
         
