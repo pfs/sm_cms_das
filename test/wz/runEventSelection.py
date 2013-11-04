@@ -121,7 +121,7 @@ def selectLepton(id, idbits, gIso, chIso, nhIso, puchIso, pt) :
         isTight = ((idbits >> 4) & 0x1)
         relIso=(chIso+nhIso+gIso)/pt
         if relIso<0.15: isLooseIso=True
-        if relIso<0.15: isTightIso=True
+        if relIso<0.1:  isTightIso=True
         
     if abs(id)==13:
         isLoose = ((idbits >> 8) & 0x1)
@@ -199,9 +199,14 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
 
     gSystem.ExpandPathName(fileName)
     file=TFile.Open(fileName)
+
+    #exclusivity of triggers per PD
+    eTriggersOnly=(fileName.find('SingleEle')>=0)
+    muTriggersOnly=(fileName.find('SingleMu')>=0)
+
+    #normalizations and corrections
     yieldsNorm=1.0
     puWeightsGr=None
-    
     if xsec>0 :
         origEvents=file.Get('smDataAnalyzer/cutflow').GetBinContent(1)
         if origEvents==0 :
@@ -284,6 +289,8 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
 
         #get triggers that fired
         eFire,mFire,emFire=decodeTriggerWord(tree.tbits)
+        if eTriggersOnly :  mFire=False
+        if muTriggersOnly : eFire=False
 
         #select the leptons
         leptonCands=[]
