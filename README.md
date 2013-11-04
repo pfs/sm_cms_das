@@ -54,7 +54,7 @@ python test/wz/runFullAnalysis.py -e test/wz/runEventSelection.py -i /store/cmst
 
 Make some control plots
 
-python test/wz/runPlotter.py -i results -j test/wz/wz_samples.json
+python test/wz/runPlotter.py -i results -j test/wz/wz_samples.json -l 18
 
 Run tag and probe
 
