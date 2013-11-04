@@ -8,7 +8,7 @@ process.load("FWCore.MessageService.MessageLogger_cfi")
 process.MessageLogger.destinations = ['cout', 'cerr']
 process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
-InputFileName = "results/DYToMuMu.root"
+InputFileName = "results/SingleMu.root"
 OutputFilePrefix = "efficiency-"
 
 EfficiencyBinningSpecification = cms.PSet(  UnbinnedVariables = cms.vstring('mass'),
@@ -32,18 +32,18 @@ process.TagProbeFitTreeAnalyzer = cms.EDAnalyzer("TagProbeFitTreeAnalyzer",
                                                  floatShapeParameters = cms.bool(True),
                                                  Variables = cms.PSet( mass = cms.vstring("Mass", "60.0", "120.0", "[GeV]"),
                                                                        pt   = cms.vstring("Transverse momentum", "0", "1000", "[GeV]"),
-                                                                       eta  = cms.vstring("Pseudo-rapidity", "-2.5", "2.5", ""),                
+                                                                       eta  = cms.vstring("Pseudo-rapidity", "-2.5", "2.5", "")
                                                                        ),
                                                  Categories = cms.PSet( passLoose    = cms.vstring("passLoose",    "dummy[pass=1,fail=0]"),
                                                                         passLooseIso = cms.vstring("passLooseIso", "dummy[pass=1,fail=0]"),
                                                                         passTight    = cms.vstring("passTight",    "dummy[pass=1,fail=0]"),
-                                                                        passTightIso = cms.vstring("passTightIso", "dummy[pass=1,fail=0]"),
+                                                                        passTightIso = cms.vstring("passTightIso", "dummy[pass=1,fail=0]")
                                                                         ),
-                                                 PDFs = cms.PSet( pdfSplusB = cms.vstring( 'Gaussian::signal(mass, mean[91.0,90.0,92.0], sigma[5,0,20])',
-                                                                                           'Chebychev::backgroundPass(mass, cPass[0,-1,1])',
-                                                                                           'Chebychev::backgroundFail(mass, cFail[0,-1,1])',
+                                                 PDFs = cms.PSet( pdfSplusB = cms.vstring( 'Gaussian::signal(mass, mean[91.2,89.0,93.0], sigma[2.3,0.5,20])',
+                                                                                           'RooCMSShape::backgroundPass(mass, alphaPass[60.,50.,70.], betaPass[0.001, 0.,0.1], betaPass, peakPass[90.0])',
+                                                                                           'RooCMSShape::backgroundFail(mass, alphaFail[60.,50.,70.], betaFail[0.001, 0.,0.1], betaFail, peakFail[90.0])',
                                                                                            'efficiency[0.8,0,1]',
-                                                                                           'signalFractionInPassing[1.0]'     
+                                                                                           'signalFractionInPassing[0.9]'     
                                                                                            ),
                                                                   ),
                                                  Efficiencies = cms.PSet(  Loose = cms.PSet( EfficiencyBinningSpecification,

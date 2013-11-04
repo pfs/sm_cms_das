@@ -1,12 +1,21 @@
 SM exercise for CMS DAS
 =======================
 
+Note
+----
+
+These notes are mostly meant for the developers but apply for the analysis.
+If doing the exercise please consider following the instructions at
+
+https://twiki.cern.ch/twiki/bin/view/CMS/SWGuideCMSDataAnalysisSchoolZandWinclusiveExercise
+
+
 Before starting
 ---------------
 
 register to git at https://github.com/ 
 
-git config --global user.github <your github username>
+git config --global user.github &lt;your github username&gt;
 
 Installation
 ------------
@@ -41,7 +50,11 @@ python test/wz/runEventSelection.py -i file.root
 
 To analyze a set of files for full analysis
 
-python test/wz/runFullAnalysis.py -e test/wz/runEventSelection.py -i /store/cmst3/user/psilva/CMSDAS -j wz_samples.json -o ./results -p "-p -t" -s 8nh
+python test/wz/runFullAnalysis.py -e test/wz/runEventSelection.py -i /store/cmst3/user/psilva/CMSDAS -j test/wz/wz_samples.json -o ./results -p "-p -t" -s 8nh
+
+Make some control plots
+
+python test/wz/runPlotter.py -i results -j test/wz/wz_samples.json
 
 Run tag and probe
 

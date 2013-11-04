@@ -242,7 +242,7 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
     #
     # LOOP OVER THE EVENTS 
     #
-    for iev in range(0,5000+0*nev) :
+    for iev in range(0,nev):
         tree.GetEntry(iev)
 
         #get triggers that fired

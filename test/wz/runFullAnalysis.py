@@ -55,17 +55,17 @@ def runFullAnalysis(myExec, inDir, jsonUrl, params, outdir, onlyTag, queue='') :
                     if queue=='' :
                         os.system(cmd)
                     else:
-                        f = open('%s/%s.sh'%(outdir,eventsFile),'w')
+                        script='%s/%s.sh'%(outdir,eventsFile)
+                        f = open(script,'w')
                         f.write('#!/bin/bash\n')
                         f.write('cd %s/src\n'%os.environ['CMSSW_BASE'])
                         f.write('export SCRAM_ARCH=%s\n'%os.environ['SCRAM_ARCH'])
                         f.write('eval `scram r -sh`\n')
                         f.write(cmd+'\n')
                         f.close()
-                        os.system('bsub -q %s %s/%s.sh'%(queue,outdir,eventsFile))
+                        os.system('chmod u+x %s'%script)
+                        os.system('bsub -q %s %s'%(queue,script))
                         
-
-
 def main():
 
     usage = 'usage: %prog [options]'
