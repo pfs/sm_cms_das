@@ -46,6 +46,7 @@ class Monitor:
         fOut=TFile.Open(self.outUrl,'RECREATE')
         for key in self.allHistos:
             for tag in self.allHistos[key] :
+                print self.norm
                 self.allHistos[key][tag].Scale(self.norm)
                 self.allHistos[key][tag].Write()
         for i in xrange(0,self.extra.GetEntriesFast()):
@@ -73,7 +74,7 @@ class LeptonCand:
     def triggerInfo(self,Tbits):
         self.Tbits=Tbits
     def selectionInfo(self,relIso,passLoose,passLooseIso,passTight,passTightIso):
-        self.relIso
+        self.relIso=relIso
         self.passLoose=passLoose
         self.passLooseIso=passLooseIso
         self.passTight=passTight
@@ -207,7 +208,7 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
             print '[Warning] normalization is requested but got 0 for original number of events - ignoring'
         else :
             yieldsNorm=xsec/origEvents
-            print 'Applying overall normalization for xsec=%f pb and # original events=%d'%(xsec,origEvents)
+            print 'Applying overall normalization factor %f corresponding to xsec=%f pb and # original events=%d'%(yieldsNorm,xsec,origEvents)
 
         #derive pileup weights
         origPileup=file.Get('smDataAnalyzer/pileup')

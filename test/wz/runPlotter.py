@@ -25,9 +25,8 @@ class Plot:
         self.data=None
     def add(self,h,title,color,isData):
         h.SetTitle(title)
-        h.SetDirectory(0)
+        
         if isData:
-            h.SetName('%sdata'%self.name)
             h.SetMarkerStyle(20)
             h.SetMarkerColor(color)
             h.SetLineColor(color)
@@ -36,7 +35,6 @@ class Plot:
             h.SetFillStyle(0)
             self.data=h
         else:
-            h.SetName('%s%d'%(self.name,len(self.mc)))
             h.SetMarkerStyle(1)
             h.SetMarkerColor(color)
             h.SetLineColor(color)
@@ -64,7 +62,7 @@ class Plot:
             frame=self.data.Clone('frame')
             maxY=self.data.GetMaximum()*1.1
             frame.Reset('ICE')
-            
+
         stack=THStack('mc','mc')
         for h in self.mc :
             stack.Add(h,'hist')
@@ -81,7 +79,6 @@ class Plot:
                 frame.Reset('ICE')
 
         if self.data is not None: nlegCols=nlegCols+1
-
         if nlegCols==0:
             print '%s is empty'%self.name
             return
@@ -110,7 +107,6 @@ class Plot:
             t2.SetBottomMargin(0.2)
             t2.Draw()
             t2.cd()
-            
             ratio=self.data.Clone('ratio')
             ratio.Divide(totalMC)
             ratio.SetDirectory(0)
@@ -163,8 +159,6 @@ def runPlotter(inDir, jsonUrl, lumi ):
     for proc in procList :
     
         for desc in proc[1] :
-
-            isData=getByLabel(desc,'isdata',False)
             data = desc['data']
             for d in data :
                 dtag = getByLabel(d,'dtag','')
@@ -172,12 +166,10 @@ def runPlotter(inDir, jsonUrl, lumi ):
             
                 for segment in range(0,split) :
                     eventsFile=dtag
-                    if split>1:
-                        eventsFile=dtag + '_' + str(segment)
+                    if split>1: eventsFile=dtag + '_' + str(segment)
                     rootFileUrl=inDir+'/'+eventsFile+'.root'
                     if(rootFileUrl.find('/store/')==0)  :
                         rootFileUrl = commands.getstatusoutput('cmsPfn ' + rootFileUrl)[1]
-                    
                     rootFile=TFile.Open(rootFileUrl)
                     try:
                         if rootFile.IsZombie() : continue
@@ -188,6 +180,7 @@ def runPlotter(inDir, jsonUrl, lumi ):
                     plots=list(set(plots+iplots))
 
     #now plot them
+    plots.sort()
     for p in plots:
 
         pName=p.replace('/','')
@@ -199,38 +192,40 @@ def runPlotter(inDir, jsonUrl, lumi ):
                 isData=getByLabel(desc,'isdata',False)
                 color=int(getByLabel(desc,'color',1))
                 data = desc['data']
+                
                 h=None
                 for d in data :
                     dtag = getByLabel(d,'dtag','')
                     split=getByLabel(d,'split',1)
-
+                    
                     for segment in range(0,split) :
                         eventsFile=dtag
-                        if split>1:
-                            eventsFile=dtag + '_' + str(segment)
-                            rootFileUrl=inDir+'/'+eventsFile+'.root'
+                        if split>1: eventsFile=dtag + '_' + str(segment)
+                        rootFileUrl=inDir+'/'+eventsFile+'.root'
                         if(rootFileUrl.find('/store/')==0)  :
                             rootFileUrl = commands.getstatusoutput('cmsPfn ' + rootFileUrl)[1]
-                                
-                    rootFile=TFile.Open(rootFileUrl)
-                    try:
-                        if rootFile.IsZombie() : continue
-                    except:
-                        continue
-                    if h is None :
-                        h=rootFile.Get(p)
+                        
+                        rootFile=TFile.Open(rootFileUrl)
                         try:
-                            h.SetDirectory(0)
+                            if rootFile.IsZombie() : continue
                         except:
-                            h=None
                             continue
-                    else:
-                        h.Add(rootFile.Get(p))
-                    rootFile.Close()
+                        ih=rootFile.Get(p)
+                        try:
+                            if ih.Integral()<=0 : continue
+                        except:
+                            continue
+                        if h is None :
+                            h=ih.Clone(pName+'_'+dtag)                    
+                            h.SetDirectory(0)
+                        else:
+                            h.Add(ih)
+                        rootFile.Close()
                 if h is None: continue
                 if not isData: h.Scale(lumi)
                 newPlot.add(h,title,color,isData)
         newPlot.show(inDir+'/plots')
+
         
                     
 def main():
