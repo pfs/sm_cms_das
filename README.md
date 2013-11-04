@@ -50,7 +50,7 @@ python test/wz/runEventSelection.py -i file.root
 
 To analyze a set of files for full analysis
 
-python test/wz/runFullAnalysis.py -e test/wz/runEventSelection.py -i /store/cmst3/user/psilva/CMSDAS -j test/wz/wz_samples.json -o ./results -p "-p -t" -s 8nh
+python test/wz/runFullAnalysis.py -e test/wz/runEventSelection.py -i /store/cmst3/user/psilva/CMSDAS -j test/wz/wz_samples.json -o ./results -p "-p -t -w pu,/store/cmst3/user/psilva/CMSDAS/LowLumiRuns_pileup.root" -s 8nh 
 
 Make some control plots
 

@@ -12,8 +12,8 @@ InputFileName = "results/SingleMu.root"
 OutputFilePrefix = "efficiency-"
 
 EfficiencyBinningSpecification = cms.PSet(  UnbinnedVariables = cms.vstring('mass'),
-                                            BinnedVariables = cms.PSet( pt=cms.vdouble(20,40,200),
-                                                                        eta=cms.vdouble(-2.5,-1.5,0.0,1.5,2.5)
+                                            BinnedVariables = cms.PSet( pt=cms.vdouble(20,25,40,55,500),
+                                                                        eta=cms.vdouble(-2.1,-1.2,-0.8,0,0.8,1.2,2.1)
                                                                         ),
                                             BinToPDFmap = cms.vstring('pdfSplusB')
                                             )
