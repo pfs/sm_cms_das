@@ -89,11 +89,12 @@ class Plot:
         frame.GetYaxis().SetRangeUser(1e-2,maxY)
         frame.SetDirectory(0)
         frame.Draw()
+        frame.GetYaxis().SetTitleOffset(1.6)
         stack.Draw('hist same')
         if self.data is not None: self.data.Draw('same')
         leg.SetNColumns(nlegCols)
         leg.Draw()
-        pt=TPaveText(0.15,0.95,0.9,0.99,'brNDC')
+        pt=TPaveText(0.12,0.95,0.9,0.99,'brNDC')
         pt.SetBorderSize(0)
         pt.SetFillStyle(0)
         pt.SetTextAlign(12)
@@ -105,6 +106,8 @@ class Plot:
         else :
             canvas.cd()
             t2=TPad("t2","t2", 0.0, 0.0, 1.0, 0.2)
+            t2.SetTopMargin(0)
+            t2.SetBottomMargin(0.2)
             t2.Draw()
             t2.cd()
             
@@ -114,6 +117,14 @@ class Plot:
             ratio.Draw('e1')
             ratio.GetYaxis().SetRangeUser(0.42,1.38)
             ratio.GetYaxis().SetTitle('Data/#SigmaBkg')
+            ratio.GetXaxis().SetTitle('')
+            ratio.GetYaxis().SetNdivisions(5)
+            ratio.GetYaxis().SetTitleOffset(0.5)
+            ratio.GetYaxis().SetLabelSize(0.12)
+            ratio.GetYaxis().SetTitleSize(0.12)
+            ratio.GetXaxis().SetLabelSize(0.12)
+            ratio.GetXaxis().SetTitleSize(0.12)
+            
 
         canvas.cd()
         canvas.Modified()
@@ -235,9 +246,37 @@ def main():
         parser.print_help()
         sys.exit(1)
 
+    #style options (mostly from tdrStyle.C
     ROOT.gROOT.SetBatch(True)
     ROOT.gStyle.SetOptTitle(False)
     ROOT.gStyle.SetOptStat(False)
+    ROOT.gStyle.SetPadTopMargin(0.1);
+    ROOT.gStyle.SetPadBottomMargin(0.13);
+    ROOT.gStyle.SetPadLeftMargin(0.15);
+    ROOT.gStyle.SetPadRightMargin(0.02);
+    ROOT.gStyle.SetLabelColor(1, "XYZ");
+    ROOT.gStyle.SetLabelFont(42, "XYZ");
+    ROOT.gStyle.SetLabelOffset(0.007, "XYZ");
+    ROOT.gStyle.SetLabelSize(0.05, "XYZ");
+    ROOT.gStyle.SetAxisColor(1, "XYZ");
+    ROOT.gStyle.SetStripDecimals(True);
+    ROOT.gStyle.SetTickLength(0.03, "XYZ");
+    ROOT.gStyle.SetNdivisions(510, "XYZ");
+    ROOT.gStyle.SetPadTickX(0);
+    ROOT.gStyle.SetPadTickY(0);
+    ROOT.gStyle.SetMarkerStyle(20);
+    ROOT.gStyle.SetHistLineColor(1);
+    ROOT.gStyle.SetHistLineStyle(0);
+    ROOT.gStyle.SetHistLineWidth(1);
+    ROOT.gStyle.SetFrameBorderMode(0);
+    ROOT.gStyle.SetFrameBorderSize(1);
+    ROOT.gStyle.SetFrameFillColor(0);
+    ROOT.gStyle.SetFrameFillStyle(0);
+    ROOT.gStyle.SetFrameLineColor(1);
+    ROOT.gStyle.SetFrameLineStyle(1);
+    ROOT.gStyle.SetFrameLineWidth(1);
+
+  
     os.system('mkdir -p %s/plots'%opt.inDir)
     runPlotter(inDir=opt.inDir, jsonUrl=opt.json, lumi=opt.lumi)
     print 'Plots have been saved to %s/plots'%opt.inDir
