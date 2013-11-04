@@ -115,14 +115,14 @@ def selectLepton(id, idbits, gIso, chIso, nhIso, puchIso, pt) :
     isTightIso=False
 
     relIso=9999.
-    if math.fabs(id)==11 :
+    if abs(id)==11 :
         isLoose = ((idbits >> 3) & 0x1)
         isTight = ((idbits >> 4) & 0x1)
         relIso=(chIso+nhIso+gIso)/pt
         if relIso<0.15: isLooseIso=True
         if relIso<0.15: isTightIso=True
         
-    if math.fabs(id)==13:
+    if abs(id)==13:
         isLoose = ((idbits >> 8) & 0x1)
         isTight = ((idbits >> 9) & 0x1)
         relIso=(chIso+nhIso+gIso)/pt
@@ -155,11 +155,11 @@ def buildVcand(eFire,mFire,emFire,leptonCands,met) :
             vCand = VectorBosonCand(23,'mumu')
             vCand.addLeg(tightLeptons[0])
             vCand.addLeg(tightLeptons[1])
-        elif len(tightLeptons)==1 and math.fabs(tightLeptons[0].id)==13 and len(vetoLeptons)==0 :
+        elif len(tightLeptons)==1 and abs(tightLeptons[0].id)==13 and len(vetoLeptons)==0 :
             vCand = VectorBosonCand(24,'mu')
             vCand.addLeg(tightLeptons[0])
             vCand.addLeg(met)
-        elif len(tightNonIsoLeptons)==1 and math.fabs(tightNonIsoLeptons[0].id)==13 and len(vetoLeptons)==0 :
+        elif len(tightNonIsoLeptons)==1 and abs(tightNonIsoLeptons[0].id)==13 and len(vetoLeptons)==0 :
             vCand = VectorBosonCand(24,'munoniso')
             vCand.addLeg(tightNonIsoLeptons[0])
             vCand.addLeg(met)
@@ -172,11 +172,11 @@ def buildVcand(eFire,mFire,emFire,leptonCands,met) :
             vCand = VectorBosonCand(23,'ee')
             vCand.addLeg(tightLeptons[0])
             vCand.addLeg(tightLeptons[1])
-        elif len(tightLeptons)==1 and math.fabs(tightLeptons[0].id)==11 and len(vetoLeptons)==0:
+        elif len(tightLeptons)==1 and abs(tightLeptons[0].id)==11 and len(vetoLeptons)==0:
             vCand = VectorBosonCand(24,'e')
             vCand.addLeg(tightLeptons[0])
             vCand.addLeg(met)
-        elif len(tightNonIsoLeptons)==1 and math.fabs(tightNonIsoLeptons[0].id)==11 and len(vetoLeptons)==0 :
+        elif len(tightNonIsoLeptons)==1 and abs(tightNonIsoLeptons[0].id)==11 and len(vetoLeptons)==0 :
             vCand = VectorBosonCand(24,'enoniso')
             vCand.addLeg(tightNonIsoLeptons[0])
             vCand.addLeg(met)
@@ -290,10 +290,10 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
         for l in xrange(0,tree.ln) :
             lep=LeptonCand(tree.ln_id[l],tree.ln_px[l],tree.ln_py[l],tree.ln_pz[l],tree.ln_en[l])
             if lep.p4.Pt()<20 : continue
-            if math.fabs(tree.ln_id[l])==11 :
+            if abs(tree.ln_id[l])==11 :
                 if math.fabs(lep.p4.Eta())>2.5 : continue
                 if math.fabs(lep.p4.Eta())>1.4442 and math.fabs(lep.p4.Eta())<1.566 : continue
-            if math.fabs(tree.ln_id[l])==13 :
+            if abs(tree.ln_id[l])==13 :
                 if math.fabs(lep.p4.Eta())>2.1 : continue
             relIso, isLoose, isLooseIso, isTight, isTightIso = selectLepton(tree.ln_id[l],tree.ln_idbits[l],tree.ln_gIso[l],tree.ln_chIso[l],tree.ln_nhIso[l],tree.ln_puchIso[l],lep.p4.Pt())
             lep.selectionInfo(relIso,isLoose, isLooseIso, isTight, isTightIso)
@@ -302,8 +302,8 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
 
             if not saveProbes: continue
             if not isTight or not isTightIso or lep.Tbits==0 : continue
-            if math.fabs(lep.id)==11 and not eFire: continue
-            if math.fabs(lep.id)==13 and not mFire: continue
+            if abs(lep.id)==11 and not eFire: continue
+            if abs(lep.id)==13 and not mFire: continue
             validTags.append( len(leptonCands)-1 )  
 
         #check if probes tree should be saved 
@@ -317,13 +317,13 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
             probe=None
             for l in xrange(0,len(leptonCands)) :
                 if l==tagIdx: continue
-                if math.fabs(tag.id)!=math.fabs(leptonCands[l].id) : continue
+                if abs(tag.id)!=abs(leptonCands[l].id) : continue
                 probe=leptonCands[l]
                 break
 
             #for electrons save superclusters if probe is not found
             matchToEle=1
-            if math.fabs(tag.id)==11 and probe is None :
+            if abs(tag.id)==11 and probe is None :
                 hasScMatch=0
                 for sc in xrange(0,tree.scn) :
                     sc_en=tree.scn_e[sc]
@@ -339,7 +339,7 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
                     scCand.triggerInfo(0)
                     probe=scCand
                     break
-            if math.fabs(tag.id)==13 : matchToEle=0
+            if abs(tag.id)==13 : matchToEle=0
             
             #save info
             if probe is not None:
@@ -372,10 +372,10 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
         for ileg in [0,1]:
             hname='leg'+str(ileg+1)+'iso'
             lid=''
-            if math.fabs(vCand.m_legs[ileg].id)==11 : lid='e'
-            elif math.fabs(vCand.m_legs[ileg].id)==13 : lid='mu'
+            if abs(vCand.m_legs[ileg].id)==11 :   lid='e'
+            elif abs(vCand.m_legs[ileg].id)==13 : lid='mu'
             else : continue
-            monitor.fill(hname,lid,vCand.m_legs[ileg].relIso,weight)
+            monitor.fill(hname,[lid],vCand.m_legs[ileg].relIso,weight)
 
         tags=[vCand.tag]
         monitor.fill('nvtxraw',tags, tree.nvtx,               1.0)
