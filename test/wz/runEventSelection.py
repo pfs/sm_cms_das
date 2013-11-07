@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-
-import FWCore.ParameterSet.Config as cms
-
 import optparse
 import os
 import sys
@@ -10,11 +7,22 @@ import math
 import array
 import random
 import commands
-from ROOT import gSystem
+from ROOT import gSystem,gInterpreter
 from ROOT import TTree, TFile, TLorentzVector, TH1F, TH2F, TGraph, TObjArray, TNtuple
 
+#Some wrappers to help the analysis
 from UserCode.sm_cms_das.SMutils import *
 
+#JET/MET tools
+gSystem.Load("libFWCoreFWLite.so");
+from ROOT import AutoLibraryLoader
+AutoLibraryLoader.enable()
+gSystem.Load("libCondFormatsJetMETObjects.so")
+from ROOT import JetCorrectorParameters, JetCorrectionUncertainty, FactorizedJetCorrector
+
+"""
+Decodes the bits in the trigger word written in the tree
+"""
 def decodeTriggerWord(trigBits) :
     eFire     = (((trigBits >> 0) & 0x1)>0) or (((trigBits >> 1) & 0x1)>0)
     mFire     = (((trigBits >> 2) & 0x1)>0) or (((trigBits >> 3) & 0x1)>0)
@@ -146,7 +154,35 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
             dataPileupFile.Close()
         except : 
             print 'No data pileup filed provided or other error occurred. If you wish add -w pu,pu_file.root'
-    
+
+    jecCorrector=None
+    jecUncertainty=None
+    try:
+        prefix='Data'
+        if xsec>0 : prefix='MC'
+        jecDir=correctionsMap['jec']
+
+        gSystem.ExpandPathName(jecDir)
+        jetCorLevels='L1FastJet'
+        jetCorFiles=jecDir+'/'+prefix+'_L1FastJet_AK5PFchs.txt'
+        jetCorLevels=jetCorLevels+':L2Relative'
+        jetCorFiles=jetCorFiles+':'+jecDir+'/'+prefix+'_L2Relative_AK5PFchs.txt'
+        jetCorLevels=jetCorLevels+':L3Absolute'
+        jetCorFiles=jetCorFiles+':'+jecDir+'/'+prefix+'_L3Absolute_AK5PFchs.txt'
+        if prefix=='Data':
+            jetCorLevels=jetCorLevels+':L2L3Residual'
+            jetCorFiles=jetCorFiles+':'+jecDir+'/'+prefix+'_L2L3Residual_AK5PFchs.txt'
+        jecCorrector=FactorizedJetCorrector(jetCorLevels,jetCorFiles)
+        print 'Jet energy corrector initialized with levels ',jetCorLevels,' for ',prefix
+
+        if prefix=='MC':
+            jecUncertainty=JetCorrectionUncertainty(jecDir+"/"+prefix+"_Uncertainty_AK5PFchs.txt")
+            print 'Jet uncertainty is ',jecUncertainty
+            
+    except Exception as e:
+        print '[Error]',e
+
+
 
     tree=file.Get("smDataAnalyzer/data")
     nev = tree.GetEntries()
@@ -210,6 +246,8 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
         #select the leptons
         leptonCands=[]
         validTags=[]
+        lepSums=[TLorentzVector(0,0,0,0)]*3
+        lepFlux=TLorentzVector(0,0,0,0)
         for l in xrange(0,tree.ln) :
             lep=LeptonCand(tree.ln_id[l],tree.ln_px[l],tree.ln_py[l],tree.ln_pz[l],tree.ln_en[l])
             if lep.p4.Pt()<20 : continue
@@ -227,7 +265,11 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
             if not isTight or not isTightIso or lep.Tbits==0 : continue
             if abs(lep.id)==11 and not eFire: continue
             if abs(lep.id)==13 and not mFire: continue
-            validTags.append( len(leptonCands)-1 )  
+
+            validTags.append( len(leptonCands)-1 )
+            lepSums[1]=lepSums[1]+lep.getP4('lesup')-lep.p4
+            lepSums[2]=lepSums[2]+lep.getP4('lesdown')-lep.p4
+            lepFlux=lepFlux+lep.p4
 
         #check if probes tree should be saved 
         if saveProbes and len(validTags)>0:
@@ -246,22 +288,22 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
 
             #for electrons save superclusters if probe is not found
             matchToEle=1
-            if abs(tag.id)==11 and probe is None :
-                hasScMatch=0
-                for sc in xrange(0,tree.scn) :
-                    sc_en=tree.scn_e[sc]
-                    sc_eta=tree.scn_eta[sc]
-                    sc_phi=tree.scn_phi[sc]
-                    sc_pt=sc_en/math.cosh(sc_eta)
-                    sc_p4=TLorentzVector(0,0,0,0)
-                    sc_p4.SetPtEtaPhiE(sc_pt,sc_eta,sc_phi,sc_en)
-                    lscp4=tag.p4+sc_p4
-                    if math.fabs(lscp4.M()-91)>30 : continue
-                    scCand=LeptonCand(tag.id,sc_p4.Px(),sc_p4.Py(),sc_p4.Pz(),sc_p4.E())
-                    scCand.selectionInfo(0,0,0,0,0)
-                    scCand.triggerInfo(0)
-                    probe=scCand
-                    break
+            #if abs(tag.id)==11 and probe is None :
+            #    matchToEle=0
+            #    for sc in xrange(0,tree.scn) :
+            #        sc_en=tree.scn_e[sc]
+            #        sc_eta=tree.scn_eta[sc]
+            #        sc_phi=tree.scn_phi[sc]
+            #        sc_pt=sc_en/math.cosh(sc_eta)
+            #        sc_p4=TLorentzVector(0,0,0,0)
+            #        sc_p4.SetPtEtaPhiE(sc_pt,sc_eta,sc_phi,sc_en)
+            #        lscp4=tag.p4+sc_p4
+            #        if math.fabs(lscp4.M()-91)>30 : continue
+            #        scCand=LeptonCand(tag.id,sc_p4.Px(),sc_p4.Py(),sc_p4.Pz(),sc_p4.E())
+            #        scCand.selectionInfo(0,0,0,0,0)
+            #        scCand.triggerInfo(0)
+            #        probe=scCand
+            #        break
             if abs(tag.id)==13 : matchToEle=0
             
             #save info
@@ -279,8 +321,46 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
                     probesFireTrigger[0]=(probe.Tbits>0)
                     probesTuple.Fill()
 
+        #jets
+        selJets=[]
+        jetSums=[TLorentzVector(0,0,0,0)]*5
+        jetFlux=TLorentzVector(0,0,0,0)
+        for j in xrange(0,tree.jn) :
+            jet=JetCand(tree.jn_px[j],tree.jn_py[j],tree.jn_pz[j],tree.jn_en[j],tree.jn_area[j],tree.jn_torawsf[j])
+            
+            #cross clean with loose isolated leptons
+            overlapFound=False
+            for l in leptonCands:
+                if not l.passLoose or not l.passLooseIso : continue
+                dR=jet.p4.DeltaR(l.p4)
+                if dR>0.4 : continue
+                overlapFound=True
+                break
+            if overlapFound: continue
+            
+            #very loose kinematics cuts
+            if math.fabs(jet.p4.Eta())>4.7 or jet.p4.Pt()<10 : continue
+
+            #save it
+            jet.genMatch(tree.jn_genpx[j],tree.jn_py[j],tree.jn_pz[j],tree.jn_en[j],tree.jn_genid[j],tree.jn_genflav[j])
+            jet.updateJEC(jecCorrector,jecUncertainty,tree.rho,tree.nvtx)
+            selJets.append(jet)
+
+            #account for all the corrections you have applied 
+            jetSums[0]=jetSums[0] + jet.getCorrectedJet()          - jet.getCorrectedJet('raw')
+            jetSums[1]=jetSums[1] + jet.getCorrectedJet('jesup')   - jet.getCorrectedJet()
+            jetSums[2]=jetSums[2] + jet.getCorrectedJet('jesdown') - jet.getCorrectedJet()
+            jetSums[3]=jetSums[3] + jet.getCorrectedJet('jerup')   - jet.getCorrectedJet()
+            jetSums[4]=jetSums[4] + jet.getCorrectedJet('jerdown') - jet.getCorrectedJet()
+            jetFlux=jetFlux+jet.p4
+
         # met
-        metCand=LeptonCand(0,tree.met_pt[0]*math.cos(tree.met_phi[0]),tree.met_pt[0]*math.sin(tree.met_phi[0]),0,tree.met_pt[0])
+        metCand=METCand(tree.met_pt[0]*math.cos(tree.met_phi[0]),tree.met_pt[0]*math.sin(tree.met_phi[0]),0,tree.met_pt[0])
+        metCand.addJetCorrections(jetSums)
+        metCand.addLeptonCorrections(lepSums)
+        unclFlux=-(metCand.p4+lepFlux+jetFlux)
+        unclSums=[TLorentzVector(0,0,0,0),unclFlux*0.10,unclFlux*(-0.10)]
+        metCand.addUnclusteredCorrections(unclSums)
         
         #build the candidate
         vCand=buildVcand(eFire,mFire,emFire,leptonCands,metCand)
@@ -304,10 +384,13 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
         monitor.fill('nvtxraw',tags, tree.nvtx,               1.0)
         monitor.fill('nvtx',   tags, tree.nvtx,               weight)
         monitor.fill('vmass',  tags, vCand.p4.M(),            weight)
-        monitor.fill('vmt',    tags, vCand.mt,                weight)
         monitor.fill('vpt',    tags, vCand.p4.Pt(),           weight)
         monitor.fill('leg1pt', tags, vCand.m_legs[0].p4.Pt(), weight)
         monitor.fill('leg2pt', tags, vCand.m_legs[1].p4.Pt(), weight)
+
+        for var in ['','lesup','lesdown','jesup','jesdown','jerup','jerdown','umetup','umetdown']:
+            mtVar=vCand.computeMt(var)
+            monitor.fill('vmt', [vCand.tag+var], mtVar, weight)
 
         if saveSummary :
             values=[vCand.id, weight*yieldsNorm,
