@@ -125,6 +125,12 @@ process.pfType1CorrectedMet.srcType1Corrections = cms.VInputTag( cms.InputTag('p
                                                                  cms.InputTag('pfJetMETcorr', 'type1')
                                                                  )
 
+# superclusters
+process.superClusterMerger =  cms.EDProducer("EgammaSuperClusterMerger",
+                                             src = cms.VInputTag(cms.InputTag('correctedHybridSuperClusters'),
+                                                                 cms.InputTag('correctedMulti5x5SuperClustersWithPreshower'))
+                                             )
+
 process.smDataAnalyzer = cms.EDAnalyzer( "SMDataAnalyzer",
                                          cfg=cms.PSet( triggerSource = cms.InputTag("TriggerResults::HLT"),
                                                        triggerPaths = cms.vstring('HLT_Ele22_CaloIdL_CaloIsoVL','HLT_Ele17_CaloIdL_CaloIsoVL',
@@ -133,6 +139,7 @@ process.smDataAnalyzer = cms.EDAnalyzer( "SMDataAnalyzer",
                                                                                   ),
                                                        genSource       = cms.InputTag("genParticles"),
                                                        vtxSource       = cms.InputTag("goodOfflinePrimaryVertices"),
+                                                       trkSource       = cms.InputTag("generalTracks"),
                                                        beamSpotSource  = cms.InputTag("offlineBeamSpot"),
                                                        rhoSource       = cms.InputTag("kt6PFJets:rho"),
                                                        muonSource      = cms.InputTag("selectedPatMuonsWithTriggerMatch"),
@@ -140,7 +147,7 @@ process.smDataAnalyzer = cms.EDAnalyzer( "SMDataAnalyzer",
                                                        conversionSource= cms.InputTag("allConversions"),
                                                        jetSource       = cms.InputTag("selectedPatJetsPFlow"),
                                                        metSource       = cms.VInputTag("pfMETPFlow","pfMet","pfType1CorrectedMet","pfType1p2CorrectedMet"),
-                                                       scSource        = cms.InputTag("correctedHybridSuperClusters")
+                                                       scSource        = cms.InputTag("superClusterMerger")
                                                        )
                                          )
 #counters for specific filters
@@ -154,6 +161,7 @@ process.p = cms.Path( process.startCounter
                       *process.kt6PFJetsCentral
                       *process.type0PFMEtCorrection*process.producePFMETCorrections
                       *process.selectedPatElectronsWithTriggerMatch
-                      *process.selectedPatMuonsWithTriggerMatch 
+                      *process.selectedPatMuonsWithTriggerMatch
+                      *process.superClusterMerger
                       *process.smDataAnalyzer
                       )

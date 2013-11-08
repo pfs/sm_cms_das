@@ -52,6 +52,10 @@ To analyze a set of files for full analysis
 
 python test/wz/runFullAnalysis.py -e test/wz/runEventSelection.py -i /store/cmst3/user/psilva/CMSDAS -j test/wz/wz_samples.json -o ./results -p "-p -t -w pu,/store/cmst3/user/psilva/CMSDAS/LowLumiRuns_pileup.root,jec,${CMSSW_BASE}/src/UserCode/sm_cms_das/data" -s 8nh 
 
+To launch the computation of the PDF weights
+
+python test/wz/runFullAnalysis.py -e ${CMSSW_BASE}/test/slc5_amd64_gcc462/computePDFvariations -i /store/cmst3/user/psilva/CMSDAS -j test/wz/wz_samples.json -o ./results/pdf -p "-t smDataAnalyzer/data -p CT10.LHgrid" -s 1nd 
+
 Make some control plots
 
 python test/wz/runPlotter.py -i results -j test/wz/wz_samples.json -l 18

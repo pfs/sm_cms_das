@@ -263,6 +263,8 @@ void SMDataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSe
   // https://twiki.cern.ch/twiki/bin/view/CMSPublic/SWGuideMuonId
   edm::Handle<View<Candidate> > muH;
   event.getByLabel( analysisCfg_.getParameter<edm::InputTag>("muonSource"),     muH);
+  edm::Handle<View<reco::Track> > tracksH;
+  event.getByLabel( analysisCfg_.getParameter<edm::InputTag>("trkSource"), tracksH);
   int nMuons(0);
   for(size_t imu=0; imu< muH->size(); ++imu)
     {
@@ -319,6 +321,16 @@ void SMDataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSe
 	    break;
 	  }
       }
+
+      //check if it is matched to a track
+      bool matchesCtfTrack(false);
+      for(size_t itk=0; itk< tracksH->size(); ++itk)
+	{
+	  Float_t dR=deltaR(muon->eta(),muon->phi(),tracksH->ptrAt(itk)->eta(),tracksH->ptrAt(itk)->phi());
+	  if(dR>0.05) continue;
+	  matchesCtfTrack=true;
+	  break;
+	}
 
       //add id bits
       bool isPF( muon->isPFMuon() );
@@ -385,7 +397,8 @@ void SMDataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSe
 	| ( isLoose                                            << 8)
 	| ( isSoft                                             << 9)
 	| ( isTight                                            << 10)
-	| ( isHighNew                                          << 11);
+	| ( isHighNew                                          << 11)
+	| ( matchesCtfTrack                                    << 12);
       
       summary_.ln++;
       nMuons++;
@@ -573,7 +586,7 @@ void SMDataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSe
   event.getByLabel(analysisCfg_.getParameter<edm::InputTag>("scSource"),superClustersH );
   for(reco::SuperClusterCollection::const_iterator scIt = superClustersH->begin(); scIt != superClustersH->end(); scIt++)
     {
-      if(scIt->energy()<10 || fabs(scIt->eta())>2.5)  continue;
+      if(scIt->energy()<15 || fabs(scIt->eta())>2.5)  continue;
       summary_.scn_e[summary_.scn]  =scIt->energy();
       summary_.scn_eta[summary_.scn]=scIt->eta();
       summary_.scn_phi[summary_.scn]=scIt->phi();

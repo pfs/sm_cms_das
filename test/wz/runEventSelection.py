@@ -169,9 +169,9 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
         jetCorFiles=jetCorFiles+':'+jecDir+'/'+prefix+'_L2Relative_AK5PFchs.txt'
         jetCorLevels=jetCorLevels+':L3Absolute'
         jetCorFiles=jetCorFiles+':'+jecDir+'/'+prefix+'_L3Absolute_AK5PFchs.txt'
-        if prefix=='Data':
-            jetCorLevels=jetCorLevels+':L2L3Residual'
-            jetCorFiles=jetCorFiles+':'+jecDir+'/'+prefix+'_L2L3Residual_AK5PFchs.txt'
+        #if prefix=='Data':
+        #    jetCorLevels=jetCorLevels+':L2L3Residual'
+        #    jetCorFiles=jetCorFiles+':'+jecDir+'/'+prefix+'_L2L3Residual_AK5PFchs.txt'
         jecCorrector=FactorizedJetCorrector(jetCorLevels,jetCorFiles)
         print 'Jet energy corrector initialized with levels ',jetCorLevels,' for ',prefix
 

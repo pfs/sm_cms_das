@@ -52,7 +52,8 @@ class SMEventSummary
 
 
   //superclusters
-  Int_t  scn, scn_e[MAXDATAOBJECTS], scn_eta[MAXDATAOBJECTS], scn_phi[MAXDATAOBJECTS];
+  Int_t  scn;
+  Float_t scn_e[MAXDATAOBJECTS], scn_eta[MAXDATAOBJECTS], scn_phi[MAXDATAOBJECTS];
 
 
   SMEventSummary() { } 
