@@ -54,7 +54,7 @@ python test/wz/runFullAnalysis.py -e test/wz/runEventSelection.py -i /store/cmst
 
 To launch the computation of the PDF weights
 
-python test/wz/runFullAnalysis.py -e ${CMSSW_BASE}/test/slc5_amd64_gcc462/computePDFvariations -i /store/cmst3/user/psilva/CMSDAS -j test/wz/wz_samples.json -o ./results/pdf -p "-t smDataAnalyzer/data -p CT10.LHgrid" -s 1nd 
+python test/wz/runFullAnalysis.py -e ${CMSSW_BASE}/test/${SCRAM_ARCH}/computePDFvariations -i /store/cmst3/user/psilva/CMSDAS -j test/wz/wz_samples.json -o ./results/pdf -p "-t smDataAnalyzer/data -p CT10.LHgrid" -s 1nd 
 
 Make some control plots
 
