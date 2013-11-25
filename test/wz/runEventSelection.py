@@ -76,15 +76,15 @@ def buildVcand(eFire,mFire,emFire,leptonCands,met) :
     # b) 1 tight muon and no loose lepton = W->mv
     if vCand is None and mFire :
         if len(tightLeptons)>=2 and tightLeptons[0].id*tightLeptons[1].id==-13*13 :
-            vCand = VectorBosonCand(23,'mumu')
+            vCand = VectorBosonCand(-13*13,'mumu')
             vCand.addLeg(tightLeptons[0])
             vCand.addLeg(tightLeptons[1])
         elif len(tightLeptons)==1 and abs(tightLeptons[0].id)==13 and len(vetoLeptons)==0 :
-            vCand = VectorBosonCand(24,'mu')
+            vCand = VectorBosonCand(tightLeptons[0].id,'mu')
             vCand.addLeg(tightLeptons[0])
             vCand.addLeg(met)
         elif len(tightNonIsoLeptons)==1 and abs(tightNonIsoLeptons[0].id)==13 and len(vetoLeptons)==0 :
-            vCand = VectorBosonCand(24,'munoniso')
+            vCand = VectorBosonCand(100*tightNonIsoLeptons[0].id,'munoniso')
             vCand.addLeg(tightNonIsoLeptons[0])
             vCand.addLeg(met)
 
@@ -93,15 +93,15 @@ def buildVcand(eFire,mFire,emFire,leptonCands,met) :
     # b) 1 tight electron and no loose lepton = W->ev
     if vCand is None and eFire:
         if len(tightLeptons)>=2 and tightLeptons[0].id*tightLeptons[1].id==-11*11 :
-            vCand = VectorBosonCand(23,'ee')
+            vCand = VectorBosonCand(-11*11,'ee')
             vCand.addLeg(tightLeptons[0])
             vCand.addLeg(tightLeptons[1])
         elif len(tightLeptons)==1 and abs(tightLeptons[0].id)==11 and len(vetoLeptons)==0:
-            vCand = VectorBosonCand(24,'e')
+            vCand = VectorBosonCand(tightLeptons[0].id,'e')
             vCand.addLeg(tightLeptons[0])
             vCand.addLeg(met)
         elif len(tightNonIsoLeptons)==1 and abs(tightNonIsoLeptons[0].id)==11 and len(vetoLeptons)==0 :
-            vCand = VectorBosonCand(24,'enoniso')
+            vCand = VectorBosonCand(100*tightNonIsoLeptons[0].id,'enoniso')
             vCand.addLeg(tightNonIsoLeptons[0])
             vCand.addLeg(met)
 
@@ -109,7 +109,7 @@ def buildVcand(eFire,mFire,emFire,leptonCands,met) :
     # a) 1 tight electron, 1 tight muon = Z->tt
     if vCand is None and emFire:
         if len(tightLeptons)>=2 and tightLeptons[0].id*tightLeptons[1].id==-11*13 :
-            vCand = VectorBosonCand(23,'emu')
+            vCand = VectorBosonCand(-11*13,'emu')
             vCand.addLeg(tightLeptons[0])
             vCand.addLeg(tightLeptons[1])
 
