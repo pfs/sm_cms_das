@@ -82,6 +82,9 @@ class LeptonCand:
         self.passLooseIso=passLooseIso
         self.passTight=passTight
         self.passTightIso=passTightIso
+    def genMatch(self,genId, genPx, genPy, genPz, genEn) :
+        self.genId=genId
+        self.genP4=TLorentzVector(genPx,genPy,genPz,genEn)
     def getP4(self,var=''):
         try:
             return self.p4Vars[var]

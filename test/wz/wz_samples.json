@@ -5,9 +5,9 @@
         "isdata":false,
         "color":"592",
         "data":[
-	    { "dtag":"WW", "xsec":5.8123 },
-	    { "dtag":"ZZ", "xsec":9.0314 },
-            { "dtag":"WZ", "xsec":22.449 }
+	    { "dtag":"WW", "xsec":5.8123, "split":5},
+	    { "dtag":"ZZ", "xsec":9.0314, "split":5 },
+            { "dtag":"WZ", "xsec":22.449, "split":5 }
            ]
         },
 	{
@@ -15,7 +15,7 @@
         "isdata":false,
 	"color":"824",
 	"data":[
-	    { "dtag":"TTJets", "xsec":245.8 }
+	    { "dtag":"TTJets", "xsec":245.8, "split":5 }
    	   ]
 	},
 	{
@@ -23,9 +23,9 @@
          "isdata":false,
          "color":"831",
          "data":[
-	      { "dtag":"DYToTauTau", "xsec":1916 },
-	      { "dtag":"DYToMuMu",   "xsec":1916 },
-	      { "dtag":"DYToEE",     "xsec":1916 }
+	      { "dtag":"DYToTauTau", "xsec":1916, "split":5 },
+	      { "dtag":"DYToMuMu",   "xsec":1916, "split":5 },
+	      { "dtag":"DYToEE",     "xsec":1916, "split":5 }
            ]
         },
 	{
@@ -33,11 +33,11 @@
          "isdata":false,
          "color":"614",
          "data":[
-		{ "dtag":"WToTauNu",    "xsec":12086 },
-		{ "dtag":"WplusToMuNu", "xsec":7322  },
-		{ "dtag":"WplusToENu",  "xsec":7322  },
-		{ "dtag":"WminusToMuNu","xsec":5181  },
-		{ "dtag":"WminusToENu", "xsec":5181  }
+		{ "dtag":"WToTauNu",    "xsec":12086, "split":5 },
+		{ "dtag":"WplusToMuNu", "xsec":7322, "split":5  },
+		{ "dtag":"WplusToENu",  "xsec":7322, "split":5  },
+		{ "dtag":"WminusToMuNu","xsec":5181, "split":5  },
+		{ "dtag":"WminusToENu", "xsec":5181, "split":5  }
    	   ]
 	},
         {
@@ -45,8 +45,8 @@
 	   "isdata":true,
 	   "color":1,
            "data":[
-            	{ "dtag":"SingleMu"       },
-                { "dtag":"SingleElectron" }
+            	{ "dtag":"SingleMu",       "split":5 },      
+                { "dtag":"SingleElectron", "split":5 }
 	     ]
           }
      ]	

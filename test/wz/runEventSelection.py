@@ -201,7 +201,7 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
 
     summaryTuple=None
     if saveSummary :
-        summaryTuple=TNtuple('data','summary','cat:weight:v_mass:v_mt:v_pt:leg1_pt:leg1_eta:leg1_phi:leg2_pt:leg2_eta:leg2_phi')
+        summaryTuple=TNtuple('data','summary','cat:weight:v_mass:v_mt:v_pt:genv_pt:leg1_pt:leg1_eta:leg1_phi:leg2_pt:leg2_eta:leg2_phi')
         summaryTuple.SetDirectory(0)
         monitor.addObject(summaryTuple)
 
@@ -212,6 +212,7 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
     probesPhi  = array.array( 'f', [ 0 ] )
     probesNvtx = array.array( 'f', [ 0 ] )
     probesMass = array.array( 'f', [ 0 ] )
+    probesIsMatched = array.array( 'i', [0] )
     probesPassLoose = array.array( 'i', [ 0 ] )
     probesPassTight = array.array( 'i', [ 0 ] )
     probesFireTrigger = array.array( 'i', [ 0 ] )
@@ -223,6 +224,7 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
         probesTuple.Branch( 'phi', probesPhi, 'phi/F' )
         probesTuple.Branch( 'nvtx', probesNvtx, 'nvtx/F' )
         probesTuple.Branch( 'mass', probesMass, 'mass/F' )
+        probesTuple.Branch( 'isMatched', probesIsMatched, 'isMatched/I' )
         probesTuple.Branch( 'passLoose', probesPassLoose, 'passLoose/I' )
         probesTuple.Branch( 'passTight', probesPassTight, 'passTight/I' )
         probesTuple.Branch( 'fireTrigger', probesFireTrigger, 'fireTrigger/I' )
@@ -237,6 +239,15 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
         if iev%10000 == 0 :
             sys.stdout.write("\r[ %d/100 ] completed" %(100.*iev/nev))
             sys.stdout.flush()
+
+        #check mc truth (select V bosons from the hard process
+        genBosonP4=TLorentzVector(0,0,0,0)
+        for g in xrange(0,tree.mcn):
+            if tree.mc_status[g]!=3 : continue
+            if abs(tree.mc_id[g])!=23 and abs(tree.mc_id[g])!=24 : continue
+            genBosonP4=TLorentzVector(tree.mc_px[g],tree.mc_py[g],tree.mc_pz[g],tree.mc_en[g])
+            break
+
 
         #get triggers that fired
         eFire,mFire,emFire=decodeTriggerWord(tree.tbits)
@@ -259,6 +270,13 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
             relIso, isLoose, isLooseIso, isTight, isTightIso = selectLepton(tree.ln_id[l],tree.ln_idbits[l],tree.ln_gIso[l],tree.ln_chIso[l],tree.ln_nhIso[l],tree.ln_puchIso[l],lep.p4.Pt())
             lep.selectionInfo(relIso,isLoose, isLooseIso, isTight, isTightIso)
             lep.triggerInfo(tree.ln_Tbits[l])
+
+            #check the generator level information
+            genMatchIdx=tree.ln_genid[l]
+            if genMatchIdx < tree.mcn :
+                lep.genMatch(tree.mc_id[genMatchIdx],tree.mc_px[genMatchIdx],tree.mc_py[genMatchIdx],tree.mc_pz[genMatchIdx],tree.mc_en[genMatchIdx])
+            else :
+                lep.genMatch(0,0,0,0,0)
             leptonCands.append(lep)
 
             if not saveProbes: continue
@@ -316,6 +334,7 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
                     probesPhi[0]=probe.p4.Phi()
                     probesNvtx[0]=tree.nvtx
                     probesMass[0]=tpp4.M()
+                    probesIsMatched[0]=(probe.genId!=0)
                     probesPassLoose[0]=(probe.passLoose and probe.passLooseIso)
                     probesPassTight[0]=(probe.passTight and probe.passTightIso)
                     probesFireTrigger[0]=(probe.Tbits>0)
@@ -392,9 +411,10 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
             mtVar=vCand.computeMt(var)
             monitor.fill('vmt', [vCand.tag+var], mtVar, weight)
 
+
         if saveSummary :
             values=[vCand.id, weight*yieldsNorm,
-                    vCand.p4.M(), vCand.mt, vCand.p4.Pt(),
+                    vCand.p4.M(), vCand.mt, vCand.p4.Pt(), genBosonP4.Pt(),
                     vCand.m_legs[0].p4.Pt(),vCand.m_legs[0].p4.Eta(),vCand.m_legs[0].p4.Phi(),
                     vCand.m_legs[1].p4.Pt(),vCand.m_legs[1].p4.Eta(),vCand.m_legs[1].p4.Phi()
                     ]
