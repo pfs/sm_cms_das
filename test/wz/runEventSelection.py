@@ -45,7 +45,7 @@ def selectLepton(id, idbits, gIso, chIso, nhIso, puchIso, pt) :
         relIso=(chIso+nhIso+gIso)/pt
         if relIso<0.15: isLooseIso=True
         if relIso<0.1:  isTightIso=True
-        
+
     if abs(id)==13:
         isLoose = ((idbits >> 8) & 0x1)
         isTight = ((idbits >> 9) & 0x1)
@@ -124,8 +124,8 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
     file=TFile.Open(fileName)
 
     #exclusivity of triggers per PD
-    eTriggersOnly=(fileName.find('SingleEle')>=0)
-    muTriggersOnly=(fileName.find('SingleMu')>=0)
+    eTriggersOnly  = ('SingleEle' in fileName)
+    muTriggersOnly = ('SingleMu'  in fileName)
 
     #normalizations and corrections
     origEvents=1.0
@@ -149,8 +149,8 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
                         iweight=normF*dataPileup.GetBinContent(xbin)/origPileup.GetBinContent(xbin)
                         puWeightsGr.SetPoint( puWeightsGr.GetN(), origPileup.GetXaxis().GetBinCenter(xbin), iweight )
             dataPileupFile.Close()
-        except : 
-            print 'No data pileup filed provided or other error occurred. If you wish add -w pu,pu_file.root'
+        except :
+            print 'No data pileup file provided or other error occurred. If you wish add -w pu,pu_file.root'
 
     jecCorrector=None
     jecUncertainty=None
@@ -175,7 +175,7 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
         if prefix=='MC':
             jecUncertainty=JetCorrectionUncertainty(jecDir+"/"+prefix+"_Uncertainty_AK5PFchs.txt")
             print 'Jet uncertainty is ',jecUncertainty
-            
+
     except Exception as e:
         print '[Error]',e
 
@@ -242,9 +242,9 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
         monitor.addObject(probesTuple)
 
     #
-    # LOOP OVER THE EVENTS 
+    # LOOP OVER THE EVENTS
     #
-    for iev in range(0,nev):
+    for iev in xrange(0,nev):
         tree.GetEntry(iev)
         if iev%10000 == 0 :
             sys.stdout.write("\r[ %d/100 ] completed" %(100.*iev/nev))
@@ -300,10 +300,10 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
             lepSums[2]=lepSums[2]+lep.getP4('lesdown')-lep.p4
             lepFlux=lepFlux+lep.p4
 
-        #check if probes tree should be saved 
+        #check if probes tree should be saved
         if saveProbes and len(validTags)>0:
 
-            # choose a random tag 
+            # choose a random tag
             tagIdx=random.choice(validTags)
             tag=leptonCands[tagIdx]
 
@@ -334,7 +334,7 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
             #        probe=scCand
             #        break
             if abs(tag.id)==13 : matchToEle=0
-            
+
             #save info
             if probe is not None:
                 tpp4=tag.p4+probe.p4
@@ -358,7 +358,7 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
         ht=0
         for j in xrange(0,tree.jn) :
             jet=JetCand(tree.jn_px[j],tree.jn_py[j],tree.jn_pz[j],tree.jn_en[j],tree.jn_area[j],tree.jn_torawsf[j])
-            
+
             #cross clean with loose isolated leptons
             overlapFound=False
             for l in leptonCands:
@@ -368,7 +368,7 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
                 overlapFound=True
                 break
             if overlapFound: continue
-            
+
             #very loose kinematics cuts
             if math.fabs(jet.p4.Eta())>4.7 or jet.p4.Pt()<10 : continue
 
@@ -376,8 +376,8 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
             jet.genMatch(tree.jn_genpx[j],tree.jn_py[j],tree.jn_pz[j],tree.jn_en[j],tree.jn_genid[j],tree.jn_genflav[j])
             jet.updateJEC(jecCorrector,jecUncertainty,tree.rho,tree.nvtx)
             selJets.append(jet)
-          
-            #account for all the corrections you have applied 
+
+            #account for all the corrections you have applied
             jetSums[0]=jetSums[0] + jet.getCorrectedJet()          - jet.getCorrectedJet('raw')
             jetSums[1]=jetSums[1] + jet.getCorrectedJet('jesup')   - jet.getCorrectedJet()
             jetSums[2]=jetSums[2] + jet.getCorrectedJet('jesdown') - jet.getCorrectedJet()
@@ -395,7 +395,7 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
         unclFlux=-(metCand.p4+lepFlux+jetFlux)
         unclSums=[TLorentzVector(0,0,0,0),unclFlux*0.10,unclFlux*(-0.10)]
         metCand.addUnclusteredCorrections(unclSums)
-        
+
         #build the candidate
         vCand=buildVcand(eFire,mFire,emFire,leptonCands,metCand)
         if vCand is None : continue
@@ -436,7 +436,7 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
                 metCand.sumet,ht
                 ]
             summaryTuple.Fill(array.array("f",values))
-               
+
     file.Close()
     monitor.close()
 
@@ -472,7 +472,7 @@ def main():
             except:
                 continue
 
-    print '[runEventSelection] analyzing %s'%opt.input 
+    print '[runEventSelection] analyzing %s'%opt.input
     selectEvents(fileName=opt.input, saveProbes=opt.saveProbes, saveSummary=opt.saveSummary, outputDir=opt.outputDir, xsec=opt.xsec, correctionsMap=correctionsMap)
 
 
