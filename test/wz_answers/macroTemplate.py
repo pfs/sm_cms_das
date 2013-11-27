@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import ROOT
-from ROOT import TFile, TTree, TCanvas
+from ROOT import TFile, TCanvas
 
 ## Run by calling in the shell:
 ## python macroTemplate.py

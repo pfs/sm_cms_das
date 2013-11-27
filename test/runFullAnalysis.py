@@ -4,15 +4,7 @@ import json
 import optparse
 import commands
 
-"""
-Gets the value of a given item
-(if not available a default value is returned)
-"""
-def getByLabel(desc,key,defaultVal=None) :
-    try :
-        return desc[key]
-    except KeyError:
-        return defaultVal
+from UserCode.sm_cms_das.Tools import *
 
 """
 Loop over the inputs and launch jobs

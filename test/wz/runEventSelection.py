@@ -8,10 +8,11 @@ import array
 import random
 import commands
 from ROOT import gSystem,gInterpreter
-from ROOT import TTree, TFile, TLorentzVector, TH1F, TH2F, TGraph, TObjArray, TNtuple, TVectorD
+from ROOT import TTree, TFile, TLorentzVector, TH1F, TH2F, TGraph, TObjArray, TNtuple
 
 #Some wrappers to help the analysis
-from UserCode.sm_cms_das.SMutils import *
+from UserCode.sm_cms_das.Monitor import *
+from UserCode.sm_cms_das.Candidates import *
 
 #JET/MET tools
 gSystem.Load("libFWCoreFWLite.so");
