@@ -47,4 +47,6 @@ for i in `seq 0 ${totalstep}`; do
     rm /tmp/psilva/${crab_working_dir}_${i}.root
 done
 
+rm ${crab_working_dir}/res/*.root
+
 

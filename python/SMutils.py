@@ -5,11 +5,13 @@ from ROOT import TFile, TLorentzVector, TH1F, TH2F, TGraph, TObjArray
 An histogram and object container
 """
 class Monitor:
-    def __init__(self,outUrl,norm):
+    def __init__(self,outUrl):
         self.outUrl=outUrl
-        self.norm=norm
+        self.values={}
         self.allHistos={}
         self.extra=TObjArray()
+    def addValue(self,value,name):
+        self.values[name]=value
     def addToMonitor(self,h,tag):
         h.SetDirectory(0)
         name=h.GetName()
@@ -37,10 +39,13 @@ class Monitor:
                 else :            h.Fill(valx,valy,valz)
     def close(self):
         fOut=TFile.Open(self.outUrl,'RECREATE')
+        outDir=fOut.mkdir('histos')
+        outDir.cd()
         for key in self.allHistos:
             for tag in self.allHistos[key] :
-                self.allHistos[key][tag].Scale(self.norm)
+                self.allHistos[key][tag].SetDirectory(outDir)
                 self.allHistos[key][tag].Write()
+        fOut.cd()
         for i in xrange(0,self.extra.GetEntriesFast()):
             obj=self.extra.At(i)
             outDir=fOut.mkdir(obj.GetName())
@@ -48,6 +53,10 @@ class Monitor:
             obj.SetDirectory(outDir)
             obj.Write()
             fOut.cd()
+        for v in self.values :
+            vVec=TVectorD(1)
+            vVec[0]=self.values[v]
+            vVec.Write(v)
         fOut.Close()
                 
 """
@@ -213,7 +222,18 @@ class METCand:
         self.p4=TLorentzVector(px,py,pz,en)
         self.p4Vars={}
         self.id=0
+        self.genP4=TLorentzVector(0,0,0,0)
+    def genMatch(self,genPx,genPy,genPz,genEn):
+        self.genId=0
+        self.genP4=TLorentzVector(genPx,genPy,genPz,genEn)
+    def addSumEts(self,sumet,chsumet):
+        self.sumet=sumet
+        self.chsumet=chsumet
     def addJetCorrections(self,jetSums):
+        #make sure corrections are only in the transverse plane
+        for i in xrange(0,len(jetSums)) :
+            jetSums[i].SetPz(0)
+            jetSums[i].SetE(jetSums[i].Pt())
         #jet/jer corrected
         self.p4=self.p4-jetSums[0]
         #uncertainties on jet/jer
@@ -223,6 +243,10 @@ class METCand:
         self.p4Vars['jerup']   = self.p4-jetSums[3]
         self.p4Vars['jerdown'] = self.p4-jetSums[4]
     def addLeptonCorrections(self,lepSums):
+        #make sure corrections are only in the transverse plane
+        for i in xrange(0,len(lepSums)) :
+            lepSums[i].SetPz(0)
+            lepSums[i].SetE(lepSums[i].Pt())
         #energy corrections
         self.p4=self.p4-lepSums[0]
         #uncertainties on energy scale
@@ -230,6 +254,10 @@ class METCand:
         self.p4Vars['lesup']   = self.p4-lepSums[1]
         self.p4Vars['lesdown'] = self.p4-lepSums[2]
     def addUnclusteredCorrections(self,uncSums):
+        #make sure corrections are only in the transverse plane
+        for i in xrange(0,len(uncSums)) :
+            uncSums[i].SetPz(0)
+            uncSums[i].SetE(uncSums[i].Pt())
         #energy corrections
         self.p4=self.p4-uncSums[0]
         #uncertainties on energy scale

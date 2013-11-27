@@ -48,7 +48,7 @@ class SMEventSummary
   
   //met 
   Int_t metn;
-  Float_t met_pt[MAXDATAOBJECTS], met_phi[MAXDATAOBJECTS],met_sig[MAXDATAOBJECTS],met_sigx2[MAXDATAOBJECTS],met_sigxy[MAXDATAOBJECTS],met_sigy2[MAXDATAOBJECTS];
+  Float_t met_pt[MAXDATAOBJECTS], met_phi[MAXDATAOBJECTS],met_sig[MAXDATAOBJECTS],met_sigx2[MAXDATAOBJECTS],met_sigxy[MAXDATAOBJECTS],met_sigy2[MAXDATAOBJECTS],met_sumet[MAXDATAOBJECTS],met_chsumet[MAXDATAOBJECTS];
 
 
   //superclusters
@@ -159,7 +159,8 @@ class SMEventSummary
     t->SetBranchAddress("met_sigx2",   this->met_sigx2);
     t->SetBranchAddress("met_sigxy",   this->met_sigxy);
     t->SetBranchAddress("met_sigy2",   this->met_sigy2);
-  
+    t->SetBranchAddress("met_sumet",   this->met_sumet);
+    t->SetBranchAddress("met_chsumet",   this->met_chsumet);
   }
 
   //
@@ -248,6 +249,8 @@ class SMEventSummary
     t->Branch("met_sigx2",   this->met_sigx2,   "met_sigx2[metn]/F");
     t->Branch("met_sigxy",   this->met_sigxy,   "met_sigxy[metn]/F");
     t->Branch("met_sigy2",   this->met_sigy2,   "met_sigy2[metn]/F");
+    t->Branch("met_sumet",   this->met_sumet,   "met_sumet[metn]/F");
+    t->Branch("met_chsumet",   this->met_chsumet,   "met_chsumet[metn]/F");
 
     //superclusters
     t->Branch("scn",            &this->scn,          "scn/I");

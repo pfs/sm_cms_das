@@ -145,6 +145,7 @@ void SMDataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSe
   //
   // GENERATOR LEVEL
   //
+  int nGenVectorBosons(0);
   if(!isData){
     
     //pileup
@@ -200,6 +201,7 @@ void SMDataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSe
 	const reco::GenParticle & p = dynamic_cast<const reco::GenParticle &>( (*genParticlesH)[i] );
 	bool isHardProc(p.status()==3);
 	if(!isHardProc) continue;
+	if(abs(p.pdgId())==23 || abs(p.pdgId())==24) nGenVectorBosons++;
 	summary_.mc_id[summary_.mcn]=p.pdgId();
 	summary_.mc_status[summary_.mcn]=p.status();
 	summary_.mc_px[summary_.mcn]=p.px();
@@ -575,6 +577,8 @@ void SMDataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSe
       Float_t significance(0.);
       if(metH.isValid() && summary_.met_sigx2[summary_.metn]<1.e10 && summary_.met_sigy2[summary_.metn]<1.e10) significance = metH->ptrAt(0)->significance();
       summary_.met_sig[summary_.metn] = significance;
+      summary_.met_sumet[summary_.metn] = metH.isValid() ? metH->ptrAt(0)->sumEt() : 0;
+      summary_.met_chsumet[summary_.metn] = metH.isValid() ? metH->ptrAt(0)->chargedHadronEt()+metH->ptrAt(0)->electronEt()+metH->ptrAt(0)->muonEt() : 0;
       summary_.metn++;
     }    
 
@@ -594,7 +598,8 @@ void SMDataAnalyzer::analyze(const edm::Event &event, const edm::EventSetup &iSe
     }
   
   //all done here: fill if at least one supercluster or lepton is found
-  if(triggerHasFired && (summary_.scn>0 || summary_.ln>0)) summary_.fill();
+  if(!isData && nGenVectorBosons==1) summary_.fill();
+  else if(triggerHasFired && (summary_.scn>0 || summary_.ln>0)) summary_.fill();
 }
 
 

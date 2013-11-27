@@ -8,7 +8,7 @@ import array
 import random
 import commands
 from ROOT import gSystem,gInterpreter
-from ROOT import TTree, TFile, TLorentzVector, TH1F, TH2F, TGraph, TObjArray, TNtuple
+from ROOT import TTree, TFile, TLorentzVector, TH1F, TH2F, TGraph, TObjArray, TNtuple, TVectorD
 
 #Some wrappers to help the analysis
 from UserCode.sm_cms_das.SMutils import *
@@ -128,15 +128,12 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
     muTriggersOnly=(fileName.find('SingleMu')>=0)
 
     #normalizations and corrections
-    yieldsNorm=1.0
+    origEvents=1.0
     puWeightsGr=None
     if xsec>0 :
         origEvents=file.Get('smDataAnalyzer/cutflow').GetBinContent(1)
         if origEvents==0 :
-            print '[Warning] normalization is requested but got 0 for original number of events - ignoring'
-        else :
-            yieldsNorm=xsec/origEvents
-            print 'Applying overall normalization factor %f corresponding to xsec=%f pb and # original events=%d'%(yieldsNorm,xsec,origEvents)
+            print '[Warning] 0 initial events ?'
 
         #derive pileup weights
         origPileup=file.Get('smDataAnalyzer/pileup')
@@ -188,7 +185,13 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
     nev = tree.GetEntries()
 
     outUrl=outputDir+'/'+os.path.basename(fileName)
-    monitor=Monitor(outUrl,yieldsNorm)
+    monitor=Monitor(outUrl)
+
+    #same the initial normalization and cross section
+    monitor.addValue(origEvents,'iniEvents')
+    monitor.addValue(xsec,'crossSection')
+
+    #some basic histograms
     monitor.addHisto('nvtx',    ';Vertices;Events',                       50,0,50)
     monitor.addHisto('nvtxraw', ';Vertices;Events',                       50,0,50)
     monitor.addHisto('vmass',   ';Mass [GeV];Events',                     50,0,250)
@@ -199,12 +202,19 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
     monitor.addHisto('leg1iso', ';Relative isolation;Events',             50,0,0.5)
     monitor.addHisto('leg2iso', ';Relative isolation;Events',             50,0,0.5)
 
+    #save a summary ntuple for analysis
     summaryTuple=None
     if saveSummary :
-        summaryTuple=TNtuple('data','summary','cat:weight:v_mass:v_mt:v_pt:genv_pt:leg1_pt:leg1_eta:leg1_phi:leg2_pt:leg2_eta:leg2_phi')
+        varList='cat:weight:nvtx:njets'
+        varList=varList+':v_mass:v_mt:v_pt:genv_mass:genv_pt'
+        varList=varList+':leg1_pt:leg1_eta:leg1_phi:genleg1_pt'
+        varList=varList+':leg2_pt:leg2_eta:leg2_phi:genleg2_pt'
+        varList=varList+':sumEt:ht'
+        summaryTuple=TNtuple('data','summary',varList)
         summaryTuple.SetDirectory(0)
         monitor.addObject(summaryTuple)
 
+    #save a dedicated ntuple for Tag and Probe
     probesTuple=None
     probesId   = array.array( 'f', [ 0 ] )
     probesPt   = array.array( 'f', [ 0 ] )
@@ -242,13 +252,14 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
 
         #check mc truth (select V bosons from the hard process
         genBosonP4=TLorentzVector(0,0,0,0)
+        genNeutP4=TLorentzVector(0,0,0,0)
         for g in xrange(0,tree.mcn):
             if tree.mc_status[g]!=3 : continue
+            genP4=TLorentzVector(tree.mc_px[g],tree.mc_py[g],tree.mc_pz[g],tree.mc_en[g])
+            if abs(tree.mc_id[g])==12 or abs(tree.mc_id[g])==14 or abs(tree.mc_id[g])==14 : genNeutP4=genNeutP4+genP4
             if abs(tree.mc_id[g])!=23 and abs(tree.mc_id[g])!=24 : continue
-            genBosonP4=TLorentzVector(tree.mc_px[g],tree.mc_py[g],tree.mc_pz[g],tree.mc_en[g])
-            break
-
-
+            genBosonP4=genP4
+        
         #get triggers that fired
         eFire,mFire,emFire=decodeTriggerWord(tree.tbits)
         if eTriggersOnly :  mFire=False
@@ -344,6 +355,7 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
         selJets=[]
         jetSums=[TLorentzVector(0,0,0,0)]*5
         jetFlux=TLorentzVector(0,0,0,0)
+        ht=0
         for j in xrange(0,tree.jn) :
             jet=JetCand(tree.jn_px[j],tree.jn_py[j],tree.jn_pz[j],tree.jn_en[j],tree.jn_area[j],tree.jn_torawsf[j])
             
@@ -364,7 +376,7 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
             jet.genMatch(tree.jn_genpx[j],tree.jn_py[j],tree.jn_pz[j],tree.jn_en[j],tree.jn_genid[j],tree.jn_genflav[j])
             jet.updateJEC(jecCorrector,jecUncertainty,tree.rho,tree.nvtx)
             selJets.append(jet)
-
+          
             #account for all the corrections you have applied 
             jetSums[0]=jetSums[0] + jet.getCorrectedJet()          - jet.getCorrectedJet('raw')
             jetSums[1]=jetSums[1] + jet.getCorrectedJet('jesup')   - jet.getCorrectedJet()
@@ -372,9 +384,12 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
             jetSums[3]=jetSums[3] + jet.getCorrectedJet('jerup')   - jet.getCorrectedJet()
             jetSums[4]=jetSums[4] + jet.getCorrectedJet('jerdown') - jet.getCorrectedJet()
             jetFlux=jetFlux+jet.p4
+            ht=ht+jet.p4.Pt()
 
         # met
         metCand=METCand(tree.met_pt[0]*math.cos(tree.met_phi[0]),tree.met_pt[0]*math.sin(tree.met_phi[0]),0,tree.met_pt[0])
+        metCand.genMatch(genNeutP4.Px(),genNeutP4.Py(),genNeutP4.Pz(),genNeutP4.E())
+        metCand.addSumEts(tree.met_sumet[0], tree.met_chsumet[0])
         metCand.addJetCorrections(jetSums)
         metCand.addLeptonCorrections(lepSums)
         unclFlux=-(metCand.p4+lepFlux+jetFlux)
@@ -413,11 +428,13 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
 
 
         if saveSummary :
-            values=[vCand.id, weight*yieldsNorm,
-                    vCand.p4.M(), vCand.mt, vCand.p4.Pt(), genBosonP4.Pt(),
-                    vCand.m_legs[0].p4.Pt(),vCand.m_legs[0].p4.Eta(),vCand.m_legs[0].p4.Phi(),
-                    vCand.m_legs[1].p4.Pt(),vCand.m_legs[1].p4.Eta(),vCand.m_legs[1].p4.Phi()
-                    ]
+            values=[
+                vCand.id, weight, tree.nvtx, len(selJets),
+                vCand.p4.M(), vCand.mt, vCand.p4.Pt(), genBosonP4.M(), genBosonP4.Pt(),
+                vCand.m_legs[0].p4.Pt(),vCand.m_legs[0].p4.Eta(),vCand.m_legs[0].p4.Phi(), vCand.m_legs[0].genP4.Pt(),
+                vCand.m_legs[1].p4.Pt(),vCand.m_legs[1].p4.Eta(),vCand.m_legs[1].p4.Phi(), vCand.m_legs[1].genP4.Pt(),
+                metCand.sumet,ht
+                ]
             summaryTuple.Fill(array.array("f",values))
                
     file.Close()

@@ -7,6 +7,9 @@ import math
 import ROOT
 from ROOT import TFile, TH1F, TH2F, THStack, TCanvas, TPad, TPaveText, TLegend
 
+# a wrapper for the plots
+from UserCode.sm_cms_das.PlotUtils import *
+
 """
 Gets the value of a given item
 (if not available a default value is returned)
@@ -16,116 +19,6 @@ def getByLabel(desc,key,defaultVal=None) :
         return desc[key]
     except KeyError:
         return defaultVal
-
-
-class Plot:
-    def __init__(self,name):
-        self.name=name
-        self.mc=[]
-        self.data=None
-    def add(self,h,title,color,isData):
-        h.SetTitle(title)
-        
-        if isData:
-            h.SetMarkerStyle(20)
-            h.SetMarkerColor(color)
-            h.SetLineColor(color)
-            h.SetLineWidth(2)
-            h.SetFillColor(0)
-            h.SetFillStyle(0)
-            self.data=h
-        else:
-            h.SetMarkerStyle(1)
-            h.SetMarkerColor(color)
-            h.SetLineColor(color)
-            h.SetLineWidth(1)
-            h.SetFillColor(color)
-            h.SetFillStyle(1001)
-            self.mc.append(h)
-    def show(self,outDir):
-        canvas=TCanvas('c','c',500,500)
-        canvas.cd()
-        t1=TPad("t1","t1", 0.0, 0.20, 1.0, 1.0)
-        t1.Draw()
-        t1.cd()
-
-        frame=None
-        leg=TLegend(0.15,0.9,0.9,0.95)
-        leg.SetBorderSize(0)
-        leg.SetFillStyle(0)
-        leg.SetTextFont(42)
-        nlegCols=0
-                
-        maxY=1.0
-        if self.data is not None:
-            leg.AddEntry( self.data, self.data.GetTitle(),'p')
-            frame=self.data.Clone('frame')
-            maxY=self.data.GetMaximum()*1.1
-            frame.Reset('ICE')
-
-        stack=THStack('mc','mc')
-        for h in self.mc :
-            stack.Add(h,'hist')
-            leg.AddEntry(h,h.GetTitle(),'f')
-            nlegCols=nlegCols+1
-            
-        totalMC=None
-        if nlegCols>0:
-            totalMC=stack.GetStack().At( stack.GetStack().GetEntriesFast()-1 ).Clone('totalmc')
-            totalMC.SetDirectory(0)
-            maxY=max(totalMC.GetMaximum(),maxY)
-            if frame is None:
-                frame=totalMC.Clone('frame')
-                frame.Reset('ICE')
-
-        if self.data is not None: nlegCols=nlegCols+1
-        if nlegCols==0:
-            print '%s is empty'%self.name
-            return
-
-        frame.GetYaxis().SetRangeUser(1e-2,maxY)
-        frame.SetDirectory(0)
-        frame.Draw()
-        frame.GetYaxis().SetTitleOffset(1.6)
-        stack.Draw('hist same')
-        if self.data is not None: self.data.Draw('same')
-        leg.SetNColumns(nlegCols)
-        leg.Draw()
-        pt=TPaveText(0.12,0.95,0.9,0.99,'brNDC')
-        pt.SetBorderSize(0)
-        pt.SetFillStyle(0)
-        pt.SetTextAlign(12)
-        pt.AddText('CMS preliminary, #sqrt{s}=8 TeV')
-        pt.Draw()
-
-        if totalMC is None or self.data is None:
-            t1.SetPad(0,0,1,1)
-        else :
-            canvas.cd()
-            t2=TPad("t2","t2", 0.0, 0.0, 1.0, 0.2)
-            t2.SetTopMargin(0)
-            t2.SetBottomMargin(0.2)
-            t2.Draw()
-            t2.cd()
-            ratio=self.data.Clone('ratio')
-            ratio.Divide(totalMC)
-            ratio.SetDirectory(0)
-            ratio.Draw('e1')
-            ratio.GetYaxis().SetRangeUser(0.42,1.38)
-            ratio.GetYaxis().SetTitle('Data/#SigmaBkg')
-            ratio.GetXaxis().SetTitle('')
-            ratio.GetYaxis().SetNdivisions(5)
-            ratio.GetYaxis().SetTitleOffset(0.5)
-            ratio.GetYaxis().SetLabelSize(0.12)
-            ratio.GetYaxis().SetTitleSize(0.12)
-            ratio.GetXaxis().SetLabelSize(0.12)
-            ratio.GetXaxis().SetTitleSize(0.12)
-            
-
-        canvas.cd()
-        canvas.Modified()
-        canvas.Update()
-        canvas.SaveAs(outDir+'/'+self.name+'.png')
 
 
 """
@@ -143,7 +36,6 @@ def getAllPlotsFrom(dir):
         elif obj.InheritsFrom('TH1') :
             toReturn.append( k )
     return toReturn
-
         
 
 """
@@ -241,36 +133,7 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    #style options (mostly from tdrStyle.C
-    ROOT.gROOT.SetBatch(True)
-    ROOT.gStyle.SetOptTitle(False)
-    ROOT.gStyle.SetOptStat(False)
-    ROOT.gStyle.SetPadTopMargin(0.1);
-    ROOT.gStyle.SetPadBottomMargin(0.13);
-    ROOT.gStyle.SetPadLeftMargin(0.15);
-    ROOT.gStyle.SetPadRightMargin(0.02);
-    ROOT.gStyle.SetLabelColor(1, "XYZ");
-    ROOT.gStyle.SetLabelFont(42, "XYZ");
-    ROOT.gStyle.SetLabelOffset(0.007, "XYZ");
-    ROOT.gStyle.SetLabelSize(0.05, "XYZ");
-    ROOT.gStyle.SetAxisColor(1, "XYZ");
-    ROOT.gStyle.SetStripDecimals(True);
-    ROOT.gStyle.SetTickLength(0.03, "XYZ");
-    ROOT.gStyle.SetNdivisions(510, "XYZ");
-    ROOT.gStyle.SetPadTickX(0);
-    ROOT.gStyle.SetPadTickY(0);
-    ROOT.gStyle.SetMarkerStyle(20);
-    ROOT.gStyle.SetHistLineColor(1);
-    ROOT.gStyle.SetHistLineStyle(0);
-    ROOT.gStyle.SetHistLineWidth(1);
-    ROOT.gStyle.SetFrameBorderMode(0);
-    ROOT.gStyle.SetFrameBorderSize(1);
-    ROOT.gStyle.SetFrameFillColor(0);
-    ROOT.gStyle.SetFrameFillStyle(0);
-    ROOT.gStyle.SetFrameLineColor(1);
-    ROOT.gStyle.SetFrameLineStyle(1);
-    ROOT.gStyle.SetFrameLineWidth(1);
-
+    customROOTstyle()
   
     os.system('mkdir -p %s/plots'%opt.inDir)
     runPlotter(inDir=opt.inDir, jsonUrl=opt.json, lumi=opt.lumi)
