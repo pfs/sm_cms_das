@@ -13,8 +13,10 @@ class Plot:
         self.name=name
         self.mc=[]
         self.data=None
+        self.garbageList=[]
 
     def add(self,h,title,color,isData):
+        self.garbageList.append(h)
         h.SetTitle(title)
         
         if isData:
@@ -34,6 +36,8 @@ class Plot:
             h.SetFillStyle(1001)
             self.mc.append(h)
 
+    def reset(self):
+        for o in self.garbageList: o.Delete()
             
     def showTable(self,firstBin=1,lastBin=-1):
         if firstBin<1: firsBin=1
@@ -72,7 +76,8 @@ class Plot:
         t1=TPad("t1","t1", 0.0, 0.20, 1.0, 1.0)
         t1.Draw()
         t1.cd()
-
+        self.garbageList.append(t1)
+        
         frame=None
         leg=TLegend(0.15,0.9,0.9,0.95)
         leg.SetBorderSize(0)
@@ -84,6 +89,7 @@ class Plot:
         if self.data is not None:
             leg.AddEntry( self.data, self.data.GetTitle(),'p')
             frame=self.data.Clone('frame')
+            self.garbageList.append(frame)
             maxY=self.data.GetMaximum()*1.1
             frame.Reset('ICE')
 
@@ -96,11 +102,13 @@ class Plot:
         totalMC=None
         if nlegCols>0:
             totalMC=stack.GetStack().At( stack.GetStack().GetEntriesFast()-1 ).Clone('totalmc')
+            self.garbageList.append(totalMC)
             totalMC.SetDirectory(0)
             maxY=max(totalMC.GetMaximum(),maxY)
             if frame is None:
                 frame=totalMC.Clone('frame')
                 frame.Reset('ICE')
+                self.garbageList.append(frame)
 
         if self.data is not None: nlegCols=nlegCols+1
         if nlegCols==0:
@@ -127,11 +135,13 @@ class Plot:
         else :
             canvas.cd()
             t2=TPad("t2","t2", 0.0, 0.0, 1.0, 0.2)
+            self.garbageList.append(t2)
             t2.SetTopMargin(0)
             t2.SetBottomMargin(0.2)
             t2.Draw()
             t2.cd()
             ratio=self.data.Clone('ratio')
+            self.garbageList.append(ratio)
             ratio.Divide(totalMC)
             ratio.SetDirectory(0)
             ratio.Draw('e1')

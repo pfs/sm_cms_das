@@ -24,16 +24,28 @@ def getByLabel(desc,key,defaultVal=None) :
 """
 Loop over file to find all histograms
 """
-def getAllPlotsFrom(dir):
+def getAllPlotsFrom(dir,chopPrefix=False):
     toReturn=[]
     allKeys=dir.GetListOfKeys()
     for tk in allKeys:
         k=tk.GetName()
         obj=dir.Get(k)
         if obj.InheritsFrom('TDirectory') :
-            allKeysInSubdir = getAllPlotsFrom(obj)
-            for kk in allKeysInSubdir : toReturn.append( k+'/'+kk )
+            allKeysInSubdir = getAllPlotsFrom(obj,chopPrefix)
+            for kk in allKeysInSubdir :
+                if not chopPrefix:
+                    toReturn.append( k+'/'+kk )
+                else:
+                    newObj=obj.Get(kk)
+                    try:
+                        if newObj.InheritsFrom('TDirectory'):
+                            toReturn.append( k+'/'+kk )
+                    except:
+                        kk=kk.split('/')[-1]
+                        toReturn.append(kk)
         elif obj.InheritsFrom('TH1') :
+            if chopPrefix:
+                k=k.replace(dir.GetName()+'_','')
             toReturn.append( k )
     return toReturn
         
@@ -48,28 +60,32 @@ def runPlotter(inDir, jsonUrl, lumi ):
 
     #make a survey of *all* existing plots
     plots=[]
-    for proc in procList :
-    
-        for desc in proc[1] :
-            data = desc['data']
-            for d in data :
-                dtag = getByLabel(d,'dtag','')
-                split=getByLabel(d,'split',1)
-            
-                for segment in range(0,split) :
-                    eventsFile=dtag
-                    if split>1: eventsFile=dtag + '_' + str(segment)
-                    rootFileUrl=inDir+'/'+eventsFile+'.root'
-                    if(rootFileUrl.find('/store/')==0)  :
-                        rootFileUrl = commands.getstatusoutput('cmsPfn ' + rootFileUrl)[1]
-                    rootFile=TFile.Open(rootFileUrl)
-                    try:
-                        if rootFile.IsZombie() : continue
-                    except:
-                        continue
-                    iplots=getAllPlotsFrom(dir=rootFile)
-                    rootFile.Close()
-                    plots=list(set(plots+iplots))
+    baseRootFile=None
+    if inDir.find('.root')>0 :
+        baseRootFile=TFile.Open(inDir)
+        plots=list(set(getAllPlotsFrom(dir=baseRootFile,chopPrefix=True)))
+    else:
+        for proc in procList :
+                for desc in proc[1] :
+                    data = desc['data']
+                    for d in data :
+                        dtag = getByLabel(d,'dtag','')
+                        split=getByLabel(d,'split',1)
+
+                        for segment in range(0,split) :
+                            eventsFile=dtag
+                            if split>1: eventsFile=dtag + '_' + str(segment)
+                            rootFileUrl=inDir+'/'+eventsFile+'.root'
+                            if(rootFileUrl.find('/store/')==0)  :
+                                rootFileUrl = commands.getstatusoutput('cmsPfn ' + rootFileUrl)[1]
+                            rootFile=TFile.Open(rootFileUrl)
+                            try:
+                                if rootFile.IsZombie() : continue
+                            except:
+                                continue
+                            iplots=getAllPlotsFrom(dir=rootFile)
+                            rootFile.Close()
+                            plots=list(set(plots+iplots))
 
     #now plot them
     plots.sort()
@@ -89,42 +105,57 @@ def runPlotter(inDir, jsonUrl, lumi ):
                 for d in data :
                     dtag = getByLabel(d,'dtag','')
                     split=getByLabel(d,'split',1)
-                    
-                    for segment in range(0,split) :
-                        eventsFile=dtag
-                        if split>1: eventsFile=dtag + '_' + str(segment)
-                        rootFileUrl=inDir+'/'+eventsFile+'.root'
-                        if(rootFileUrl.find('/store/')==0)  :
-                            rootFileUrl = commands.getstatusoutput('cmsPfn ' + rootFileUrl)[1]
+
+                    if baseRootFile is None:
+                        for segment in range(0,split) :
+                            eventsFile=dtag
+                            if split>1: eventsFile=dtag + '_' + str(segment)
+                            rootFileUrl=inDir+'/'+eventsFile+'.root'
+                            if(rootFileUrl.find('/store/')==0)  :
+                                rootFileUrl = commands.getstatusoutput('cmsPfn ' + rootFileUrl)[1]
                         
-                        rootFile=TFile.Open(rootFileUrl)
-                        try:
-                            if rootFile.IsZombie() : continue
-                        except:
-                            continue
-                        ih=rootFile.Get(p)
+                            rootFile=TFile.Open(rootFileUrl)
+                            try:
+                                if rootFile.IsZombie() : continue
+                            except:
+                                continue
+                            ih=rootFile.Get(p)
+                            try:
+                                if ih.Integral()<=0 : continue
+                            except:
+                                continue
+                            if h is None :
+                                h=ih.Clone(dtag+'_'+pName)
+                                h.SetDirectory(0)
+                            else:
+                                h.Add(ih)
+                            rootFile.Close()
+
+                    else:
+                        ih=baseRootFile.Get(dtag+'/'+dtag+'_'+pName)
                         try:
                             if ih.Integral()<=0 : continue
                         except:
                             continue
-                        if h is None :
-                            h=ih.Clone(pName+'_'+dtag)                    
+                        if h is None:
+                            h=ih.Clone(dtag+'_'+pName)
                             h.SetDirectory(0)
                         else:
                             h.Add(ih)
-                        rootFile.Close()
+
                 if h is None: continue
                 if not isData: h.Scale(lumi)
                 newPlot.add(h,title,color,isData)
-        newPlot.show(inDir+'/plots')
 
-        
+        if baseRootFile is not None: baseRootFile.Close()
+        newPlot.show('plots/')
+        newPlot.reset()
                     
 def main():
 
     usage = 'usage: %prog [options]'
     parser = optparse.OptionParser(usage)
-    parser.add_option('-i', '--in'         ,    dest='inDir'              , help='Input directory'                        , default=None)
+    parser.add_option('-i', '--in'         ,    dest='inDir'              , help='Input directory or file'                , default=None)
     parser.add_option('-j', '--json'       ,    dest='json'               , help='A json file with the samples to analyze', default=None)
     parser.add_option('-l', '--lumi'       ,    dest='lumi'               , help='Re-scale to integrated luminosity [pb]',  default=1.0, type='float')
     (opt, args) = parser.parse_args()
@@ -135,9 +166,9 @@ def main():
 
     customROOTstyle()
   
-    os.system('mkdir -p %s/plots'%opt.inDir)
+    os.system('mkdir -p plots')
     runPlotter(inDir=opt.inDir, jsonUrl=opt.json, lumi=opt.lumi)
-    print 'Plots have been saved to %s/plots'%opt.inDir
+    print 'Plots have been saved to plots'
 
 if __name__ == "__main__":
     main()

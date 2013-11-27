@@ -12,10 +12,8 @@ def getByLabel(desc,key,defaultVal=None) :
         return defaultVal
 
 """
-Parse the json file looking for a given process and build the list of files to process
 """
-def getFilesForProcess(jsonUrl, tag, inDir):
-    toReturn=[]
+def getProcessesTree(inDir,jsonUrl,tag=None):
     jsonFile = open(jsonUrl,'r')
     procList=json.load(jsonFile,encoding='utf-8').items()
     for proc in procList :
@@ -23,7 +21,10 @@ def getFilesForProcess(jsonUrl, tag, inDir):
             data = desc['data']
             for d in data :
                 dtag = getByLabel(d,'dtag','')
-                if dtag!=tag : continue
+                if tag is not None:
+                    if dtag!=tag :
+                        continue
+                dtagFiles=[]
                 split=getByLabel(d,'split',1)
                 for segment in range(0,split) :
                     eventsFile=dtag
@@ -32,8 +33,24 @@ def getFilesForProcess(jsonUrl, tag, inDir):
                     eventsFileUrl=inDir+'/'+eventsFile+'.root'
                     if(eventsFileUrl.find('/store/')==0)  :
                         eventsFileUrl = commands.getstatusoutput('cmsPfn ' + eventsFileUrl)[1]
-                    toReturn.append(eventsFileUrl)
-    return toReturn
+                    dtagFiles.append(eventsFileUrl)
+                d['files']=dtagFiles
+    return procList
+    
+
+"""
+Parse the json file looking for a given process and build the list of files to process
+"""
+def getFilesForProcess(jsonUrl, tag, inDir):
+    procList=getProcessesTree(inDir,jsonUrl,tag)
+    for proc in procList :
+        for desc in proc[1] :
+            data = desc['data']
+            for d in data :
+                dtag = getByLabel(d,'dtag','')
+                if dtag!=tag : continue
+                return getByLabel(d,'files')
+    return None
 
 """
 Parse the json file and retrieve all processes
