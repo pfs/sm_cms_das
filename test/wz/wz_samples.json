@@ -41,6 +41,14 @@
    	   ]
 	},
         {
+	   "tag":"Multi-jets (data)",
+	   "color":17,
+	   "isdatadriven":true,
+           "data":[
+            	{ "dtag":"MJ"}
+	     ]
+        },
+        {
 	   "tag":"data",
 	   "isdata":true,
 	   "color":1,

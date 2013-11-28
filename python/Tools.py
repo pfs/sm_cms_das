@@ -55,12 +55,14 @@ def getFilesForProcess(jsonUrl, tag, inDir):
 """
 Parse the json file and retrieve all processes
 """
-def getProcesses(jsonUrl,getMC=True,getData=False):
+def getProcesses(jsonUrl,getMC=True,getData=False,getDataDriven=False):
     toReturn=[]
     jsonFile = open(jsonUrl,'r')
     procList=json.load(jsonFile,encoding='utf-8').items()
     for proc in procList :
         for desc in proc[1] :
+            isDataDriven=getByLabel(desc,'isdatadriven',False)
+            if isDataDriven and not getDataDriven : continue
             isData=getByLabel(desc,'isdata',False)
             if isData and not getData : continue
             if not isData and not getMC : continue

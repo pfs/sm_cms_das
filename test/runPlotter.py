@@ -53,7 +53,7 @@ def getAllPlotsFrom(dir,chopPrefix=False):
 """
 Loop over the inputs and launch jobs
 """
-def runPlotter(inDir, jsonUrl, lumi ):
+def runPlotter(inDir, jsonUrl, lumi, debug ):
 
     jsonFile = open(jsonUrl,'r')
     procList=json.load(jsonFile,encoding='utf-8').items()
@@ -64,6 +64,7 @@ def runPlotter(inDir, jsonUrl, lumi ):
     if inDir.find('.root')>0 :
         baseRootFile=TFile.Open(inDir)
         plots=list(set(getAllPlotsFrom(dir=baseRootFile,chopPrefix=True)))
+        print plots
     else:
         for proc in procList :
                 for desc in proc[1] :
@@ -149,15 +150,17 @@ def runPlotter(inDir, jsonUrl, lumi ):
 
         if baseRootFile is not None: baseRootFile.Close()
         newPlot.show('plots/')
+        if(debug) : newPlot.showTable('plots/')
         newPlot.reset()
                     
 def main():
 
     usage = 'usage: %prog [options]'
     parser = optparse.OptionParser(usage)
-    parser.add_option('-i', '--in'         ,    dest='inDir'              , help='Input directory or file'                , default=None)
-    parser.add_option('-j', '--json'       ,    dest='json'               , help='A json file with the samples to analyze', default=None)
-    parser.add_option('-l', '--lumi'       ,    dest='lumi'               , help='Re-scale to integrated luminosity [pb]',  default=1.0, type='float')
+    parser.add_option('-i', '--in'         ,    dest='inDir'              , help='Input directory or file'                ,   default=None)
+    parser.add_option('-j', '--json'       ,    dest='json'               , help='A json file with the samples to analyze',   default=None)
+    parser.add_option('-d', '--debug'      ,    dest='debug'              , help='Dump the event yields table for each plot', default=False, action="store_true")
+    parser.add_option('-l', '--lumi'       ,    dest='lumi'               , help='Re-scale to integrated luminosity [pb]',    default=1.0,   type='float')
     (opt, args) = parser.parse_args()
 
     if opt.inDir is None or opt.json is None:
@@ -167,7 +170,7 @@ def main():
     customROOTstyle()
   
     os.system('mkdir -p plots')
-    runPlotter(inDir=opt.inDir, jsonUrl=opt.json, lumi=opt.lumi)
+    runPlotter(inDir=opt.inDir, jsonUrl=opt.json, lumi=opt.lumi, debug=opt.debug)
     print 'Plots have been saved to plots'
 
 if __name__ == "__main__":

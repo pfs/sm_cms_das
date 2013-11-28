@@ -18,7 +18,7 @@ class Plot:
     def add(self,h,title,color,isData):
         self.garbageList.append(h)
         h.SetTitle(title)
-        
+
         if isData:
             h.SetMarkerStyle(20)
             h.SetMarkerColor(color)
@@ -39,13 +39,16 @@ class Plot:
     def reset(self):
         for o in self.garbageList: o.Delete()
             
-    def showTable(self,firstBin=1,lastBin=-1):
-        if firstBin<1: firsBin=1
+    def showTable(self,outDir,firstBin=1,lastBin=-1):
 
-        print '-------------------------------------'
-        print "Process".ljust(10),
-        print "Events".ljust(10)
+        if firstBin<1: firstBin=1
 
+        f=open(outDir+'/'+self.name+'.dat','w')
+        f.write('------------------------------------------\n')
+        f.write("Process".ljust(20),)
+        f.write("Events\n")
+        f.write('------------------------------------------\n')
+        
         tot=0
         err=0
         for h in self.mc:
@@ -56,18 +59,19 @@ class Plot:
             ierr=ROOT.Double(0)
             itot=h.IntegralAndError(firstBin,lastBin,ierr)
             pname=h.GetTitle()
-            print pname.ljust(10)[:n],
-            print '%3.3f\\pm%3.3f'%(itot,ierr)
+            f.write(pname.ljust(20),)
+            f.write('%3.3f +/- %3.3f\n'%(itot,ierr))
             tot=tot+itot
             err=err+ierr*ierr
-        print '-------------------------------------'
-        print 'Total'.ljust(10),
-        print '%3.3f\\pm%3.3f'%(tot,math.sqrt(err))
+        f.write('------------------------------------------\n')
+        f.write('Total'.ljust(20),)
+        f.write('%3.3f +/- %3.3f\n'%(tot,math.sqrt(err)))
 
         if self.data is None : return
-        print '-------------------------------------'
-        print 'Data'.ljust(10),
-        print '%3.3f'%(self.data.IntegralAndError(firstBin,lastBin))
+        f.write('------------------------------------------\n')
+        f.write('Data'.ljust(20),)
+        f.write('%d\n'%(self.data.Integral(firstBin,lastBin)))
+        f.close()
                        
             
     def show(self,outDir):
@@ -93,17 +97,20 @@ class Plot:
             maxY=self.data.GetMaximum()*1.1
             frame.Reset('ICE')
 
+        totalMC=None
         stack=THStack('mc','mc')
         for h in self.mc :
             stack.Add(h,'hist')
             leg.AddEntry(h,h.GetTitle(),'f')
             nlegCols=nlegCols+1
-            
-        totalMC=None
-        if nlegCols>0:
-            totalMC=stack.GetStack().At( stack.GetStack().GetEntriesFast()-1 ).Clone('totalmc')
-            self.garbageList.append(totalMC)
-            totalMC.SetDirectory(0)
+            if totalMC is None:
+                totalMC=h.Clone('totalmc')
+                self.garbageList.append(totalMC)
+                totalMC.SetDirectory(0)
+            else:
+                totalMC.Add(h)
+
+        if totalMC is None:
             maxY=max(totalMC.GetMaximum(),maxY)
             if frame is None:
                 frame=totalMC.Clone('frame')
@@ -145,7 +152,7 @@ class Plot:
             ratio.Divide(totalMC)
             ratio.SetDirectory(0)
             ratio.Draw('e1')
-            ratio.GetYaxis().SetRangeUser(0.42,1.38)
+            ratio.GetYaxis().SetRangeUser(0.62,1.38)
             ratio.GetYaxis().SetTitle('Data/#SigmaBkg')
             ratio.GetXaxis().SetTitle('')
             ratio.GetYaxis().SetNdivisions(5)
@@ -154,7 +161,6 @@ class Plot:
             ratio.GetYaxis().SetTitleSize(0.12)
             ratio.GetXaxis().SetLabelSize(0.12)
             ratio.GetXaxis().SetTitleSize(0.12)
-            
 
         canvas.cd()
         canvas.Modified()
