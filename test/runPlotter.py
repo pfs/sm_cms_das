@@ -64,7 +64,6 @@ def runPlotter(inDir, jsonUrl, lumi, debug ):
     if inDir.find('.root')>0 :
         baseRootFile=TFile.Open(inDir)
         plots=list(set(getAllPlotsFrom(dir=baseRootFile,chopPrefix=True)))
-        print plots
     else:
         for proc in procList :
                 for desc in proc[1] :
@@ -147,11 +146,13 @@ def runPlotter(inDir, jsonUrl, lumi, debug ):
                 if h is None: continue
                 if not isData: h.Scale(lumi)
                 newPlot.add(h,title,color,isData)
-
-        if baseRootFile is not None: baseRootFile.Close()
+        
+        #newPlot.info()
         newPlot.show('plots/')
         if(debug) : newPlot.showTable('plots/')
         newPlot.reset()
+
+    if baseRootFile is not None: baseRootFile.Close()
                     
 def main():
 

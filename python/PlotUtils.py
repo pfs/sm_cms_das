@@ -15,6 +15,10 @@ class Plot:
         self.data=None
         self.garbageList=[]
 
+    def info(self):
+        print self.name
+        print len(self.mc),' mc processes', ' data=', self.data  
+
     def add(self,h,title,color,isData):
         self.garbageList.append(h)
         h.SetTitle(title)
@@ -110,7 +114,7 @@ class Plot:
             else:
                 totalMC.Add(h)
 
-        if totalMC is None:
+        if totalMC is not None:
             maxY=max(totalMC.GetMaximum(),maxY)
             if frame is None:
                 frame=totalMC.Clone('frame')
