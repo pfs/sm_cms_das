@@ -165,6 +165,7 @@ class METCand:
         self.p4=TLorentzVector(px,py,pz,en)
         self.p4Vars={}
         self.id=0
+        self.relIso=0
         self.genP4=TLorentzVector(0,0,0,0)
     def genMatch(self,genPx,genPy,genPz,genEn):
         self.genId=0

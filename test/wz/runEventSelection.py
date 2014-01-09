@@ -66,43 +66,35 @@ def buildVcand(eFire,mFire,emFire,leptonCands,met) :
 
     tightLeptons=[]
     tightNonIsoLeptons=[]
-    vetoLeptons=[]
+    looseLeptons=[]
     for l in leptonCands :
-        if   l.passTight and l.passTightIso     : tightLeptons.append(l)
-        elif l.passLoose and l.passLooseIso     : vetoLeptons.append(l)
-        elif l.passTight and not l.passLooseIso : tightNonIsoLeptons.append(l)
+        if l.passLoose and l.passLooseIso     : looseLeptons.append(l)
+        if l.passTight and l.passTightIso     : tightLeptons.append(l)
+        if l.passTight                        : tightNonIsoLeptons.append(l)
 
     # test first hypotheses: muon channels -> require muon trigger
     # a) 2 tight muons = Z->mm
-    # b) 1 tight muon and no loose lepton = W->mv
+    # b) at least 1 tight id (no iso) muon and <2 loose muons = W->mv
     if vCand is None and mFire :
         if len(tightLeptons)>=2 and tightLeptons[0].id*tightLeptons[1].id==-13*13 :
             vCand = VectorBosonCand(-13*13,'mumu')
             vCand.addLeg(tightLeptons[0])
             vCand.addLeg(tightLeptons[1])
-        elif len(tightLeptons)==1 and abs(tightLeptons[0].id)==13 and len(vetoLeptons)==0 :
-            vCand = VectorBosonCand(tightLeptons[0].id,'mu')
-            vCand.addLeg(tightLeptons[0])
-            vCand.addLeg(met)
-        elif len(tightNonIsoLeptons)==1 and abs(tightNonIsoLeptons[0].id)==13 and len(vetoLeptons)==0 :
-            vCand = VectorBosonCand(100*tightNonIsoLeptons[0].id,'munoniso')
+        elif len(tightNonIsoLeptons)>0 and abs(tightNonIsoLeptons[0].id)==13 and len(looseLeptons)<2 :
+            vCand = VectorBosonCand(tightNonIsoLeptons[0].id,'mu')
             vCand.addLeg(tightNonIsoLeptons[0])
             vCand.addLeg(met)
 
     # test second hypotheses: electron channels -> require electron trigger
     # a) 2 tight electrons = Z->ee
-    # b) 1 tight electron and no loose lepton = W->ev
+    # b) at least 1 tight id (no iso) electron and <2 loose electrons = W->ev
     if vCand is None and eFire:
         if len(tightLeptons)>=2 and tightLeptons[0].id*tightLeptons[1].id==-11*11 :
             vCand = VectorBosonCand(-11*11,'ee')
             vCand.addLeg(tightLeptons[0])
             vCand.addLeg(tightLeptons[1])
-        elif len(tightLeptons)==1 and abs(tightLeptons[0].id)==11 and len(vetoLeptons)==0:
-            vCand = VectorBosonCand(tightLeptons[0].id,'e')
-            vCand.addLeg(tightLeptons[0])
-            vCand.addLeg(met)
-        elif len(tightNonIsoLeptons)==1 and abs(tightNonIsoLeptons[0].id)==11 and len(vetoLeptons)==0 :
-            vCand = VectorBosonCand(100*tightNonIsoLeptons[0].id,'enoniso')
+        elif len(tightNonIsoLeptons)>0 and abs(tightNonIsoLeptons[0].id)==11 and len(looseLeptons)<2:
+            vCand = VectorBosonCand(tightNonIsoLeptons[0].id,'e')
             vCand.addLeg(tightNonIsoLeptons[0])
             vCand.addLeg(met)
 
@@ -208,9 +200,10 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
     if saveSummary :
         varList='cat:weight:nvtx:njets'
         varList=varList+':v_mass:v_mt:v_pt:genv_mass:genv_pt'
-        varList=varList+':leg1_pt:leg1_eta:leg1_phi:genleg1_pt'
-        varList=varList+':leg2_pt:leg2_eta:leg2_phi:genleg2_pt'
+        varList=varList+':leg1_pt:leg1_eta:leg1_phi:genleg1_pt:leg1_relIso'
+        varList=varList+':leg2_pt:leg2_eta:leg2_phi:genleg2_pt:leg2_relIso'
         varList=varList+':sumEt:ht'
+        varList=varList+':met_lesup:met_lesdown:met_jesup:met_jesdown:met_jerup:met_jerdown:met_umetup:met_umetdown'
         summaryTuple=TNtuple('data','summary',varList)
         summaryTuple.SetDirectory(0)
         monitor.addObject(summaryTuple)
@@ -432,9 +425,10 @@ def selectEvents(fileName,saveProbes=False,saveSummary=False,outputDir='./',xsec
             values=[
                 vCand.id, weight, tree.nvtx, len(selJets),
                 vCand.p4.M(), vCand.mt, vCand.p4.Pt(), genBosonP4.M(), genBosonP4.Pt(),
-                vCand.m_legs[0].p4.Pt(),vCand.m_legs[0].p4.Eta(),vCand.m_legs[0].p4.Phi(), vCand.m_legs[0].genP4.Pt(),
-                vCand.m_legs[1].p4.Pt(),vCand.m_legs[1].p4.Eta(),vCand.m_legs[1].p4.Phi(), vCand.m_legs[1].genP4.Pt(),
-                metCand.sumet,ht
+                vCand.m_legs[0].p4.Pt(),vCand.m_legs[0].p4.Eta(),vCand.m_legs[0].p4.Phi(), vCand.m_legs[0].genP4.Pt(), vCand.m_legs[0].relIso,
+                vCand.m_legs[1].p4.Pt(),vCand.m_legs[1].p4.Eta(),vCand.m_legs[1].p4.Phi(), vCand.m_legs[1].genP4.Pt(), vCand.m_legs[1].relIso,
+                metCand.sumet, ht,
+                metCand.p4Vars['lesup'].Pt(),metCand.p4Vars['lesdown'].Pt(),metCand.p4Vars['jesup'].Pt(),metCand.p4Vars['jesdown'].Pt(),metCand.p4Vars['jerup'].Pt(),metCand.p4Vars['jerdown'].Pt(),metCand.p4Vars['umetup'].Pt(),metCand.p4Vars['umetdown'].Pt()
                 ]
             summaryTuple.Fill(array.array("f",values))
 

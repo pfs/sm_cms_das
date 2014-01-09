@@ -31,13 +31,14 @@ struct stPDFval{
     x2(arg.x2),
     id1(arg.id1),
     id2(arg.id2){
+    wgts.clear();
   }
-
-   Float_t qscale;
-   Float_t x1;
-   Float_t x2;
-   int id1;
-   int id2;
+  std::vector<Float_t> wgts;
+  Float_t qscale;
+  Float_t x1;
+  Float_t x2;
+  int id1;
+  int id2;
 };
 
 void printHelp()
@@ -96,7 +97,7 @@ int main(int argc, char* argv[])
   inTree->SetBranchAddress("id1",         &valForPDF.id1);
   inTree->SetBranchAddress("id2",         &valForPDF.id2);
   std::vector<stPDFval> pdfVals;
-  cout << "Progres bar         :0%%       20%%       40%%       60%%       80%%       100%%" << endl
+  cout << "Progres bars        :0%%       20%%       40%%       60%%       80%%       100%%" << endl
        << "Scanning the ntuple :" << flush;
   int treeStep = inTree->GetEntriesFast()/50;
   if(treeStep==0)treeStep=1;
@@ -127,30 +128,40 @@ int main(int argc, char* argv[])
     }
   cout << "Loop on PDF sets and variations" << endl;
   for(size_t ipdf=0; ipdf<pdfSets.size(); ipdf++){
+
+    //compute PDF weights (notice we divide by x because xfx returnx x\times PDF)
     cout << "   - starting with " << pdfSets[ipdf] << " which has " << nPdfVars[ipdf] << " variations..." << flush;
     for(int i=0; i <(nPdfVars[ipdf]+1); ++i){
-      
-      LHAPDF::usePDFMember(ipdf+1,i);
-      char nameBuf[256];sprintf(nameBuf,"%s_var%d", pdfSets[ipdf].Data(), i);
-           
-      //create the output tree
-      float pdfWgt(0);
-      TTree *pdfT = new TTree(nameBuf,"pdf");
-      pdfT->Branch("w", &pdfWgt, "w/F");
-      pdfT->SetDirectory(ofile);
-      
       for(unsigned int v=0; v<pdfVals.size(); v++){ 
+	LHAPDF::usePDFMember(ipdf+1,i);
 	Float_t xpdf1 = LHAPDF::xfx(ipdf+1, pdfVals[v].x1, pdfVals[v].qscale, pdfVals[v].id1)/pdfVals[v].x1;
 	Float_t xpdf2 = LHAPDF::xfx(ipdf+1, pdfVals[v].x2, pdfVals[v].qscale, pdfVals[v].id2)/pdfVals[v].x2;
-	pdfWgt = xpdf1 * xpdf2;
-	pdfT->Fill();
+	pdfVals[i].wgts.push_back( xpdf1 * xpdf2 );
       }
-      ofile->cd();
-      pdfT->Write();
+    }
+
+    //create the output tree (simple array with n entries)
+    ofile->cd();    
+    char nameBuf[256];sprintf(nameBuf,"%s", pdfSets[ipdf].Data());
+    cout << "...done - filling " << nameBuf << " tree..." << flush;
+    TTree *pdfT = new TTree(nameBuf,"pdf");
+    Int_t nVars(nPdfVars[ipdf]+1);
+    Float_t pdfWgt[nVars];
+    pdfT->Branch("n", &nVars, "n/I");
+    pdfT->Branch("w", pdfWgt, "w[n]/F");
+    pdfT->SetDirectory(ofile);
+    for(unsigned int v=0; v<pdfVals.size(); v++){
+      for(size_t iwgt=0; iwgt<pdfVals[v].wgts.size(); iwgt++) pdfWgt[iwgt]=pdfVals[v].wgts[iwgt];
+      pdfT->Fill();
+      pdfVals[v].wgts.clear();
     }
     cout << "...done" << endl;
+    
+    //write to file
+    ofile->cd();
+    pdfT->Write();
   }
-
+  
   ofile->Close();
   cout << "All done here" << endl;
 }  
