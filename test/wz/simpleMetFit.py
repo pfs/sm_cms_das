@@ -16,23 +16,26 @@ def showFitResults(w,cat) :
     c.SetTopMargin(0.05)
     c.SetBottomMargin(0.1)
     c.SetLeftMargin(0.15)
- 
-    frame=w.var('x').frame()
+
+    xvar=w.var('x')
+    frame=xvar.frame()
     data=w.data('roohist_data_'+cat)
     data.plotOn(frame, RooFit.Name('data'))
+
     pdf=w.pdf('model_'+cat)
-    pdfSubSet=RooArgSet(w.pdf('pdf_other_%s'%(cat) ))
-    pdf.plotOn(frame,
-               RooFit.Components( pdfSubSet ),
-               RooFit.MoveToBack(), RooFit.FillColor(592), RooFit.DrawOption('lf'), RooFit.Name('other') )
-    pdfSubSet=RooArgSet(w.pdf('pdf_other_%s'%(cat) ), w.pdf('pdf_qcd'))
-    pdf.plotOn(frame,
-               RooFit.Components( pdfSubSet ),
-               RooFit.MoveToBack(), RooFit.FillColor(17), RooFit.DrawOption('lf'), RooFit.Name('mj') )
-    pdfSubSet=RooArgSet(w.pdf('pdf_signal_%s'%(cat) ), w.pdf('pdf_other_%s'%(cat) ), w.pdf('pdf_qcd'))
+    pdfSubSet=RooArgSet(w.pdf('pdf_signal_%s'%(cat) ))
     pdf.plotOn(frame,
                RooFit.Components( pdfSubSet ),
                RooFit.MoveToBack(), RooFit.FillColor(614), RooFit.DrawOption('lf'), RooFit.Name('signal') )
+    pdfSubSet=RooArgSet(w.pdf('pdf_other_%s'%(cat) ), w.pdf('pdf_signal_%s'%(cat)))
+    pdf.plotOn(frame,
+               RooFit.Components( pdfSubSet ),
+               RooFit.MoveToBack(), RooFit.FillColor(17), RooFit.DrawOption('lf'), RooFit.Name('other') )
+    pdfH=pdf.createHistogram('x',50)
+    totalFit=w.var('N_other_%s'%(cat)).getVal()+w.var('N_qcd_%s'%(cat)).getVal()+w.var('N_signal_%s'%(cat)).getVal()  
+    print totalFit, pdfH.Integral()
+    pdfH.Scale(totalFit/pdfH.Integral())
+    
     frame.Draw()
     frame.GetYaxis().SetTitle('Events')
     frame.GetXaxis().SetTitle('Missing transverse energy [GeV]')
@@ -42,6 +45,7 @@ def showFitResults(w,cat) :
     frame.GetXaxis().SetLabelSize(0.04)
     frame.GetXaxis().SetTitleSize(0.05)
     frame.GetXaxis().SetTitleOffset(0.8)
+    pdfH.Draw('histsame')
 
     #the CMS header
     pt = TPaveText(0.12,0.96,0.9,1.0,"brNDC")
@@ -146,12 +150,12 @@ def main() :
 
     #variable in which the data is counted
     w.factory('x[50,0,100]')
-       
+        
     #import histos
     importPdfsAndNormalizationsFrom(url='plotter.root',w=w)
 
     #define the QCD pdf expression 
-    w.factory('alpha[10,0,100]')
+    w.factory('alpha[10,0,20]')
     w.factory('beta[0,0,1]')
     w.factory("EXPR::pdf_qcd('@0*TMath::Exp(-0.5*TMath::Power(@0/(@1+@2*@0),2))',{x,alpha,beta})") 
  
@@ -162,21 +166,21 @@ def main() :
     nllSet=RooArgSet()
     for cat in ['','noniso'] :
     
-        w.factory('N_qcd_%s[0,0,9999999999999.]'%(cat))
+        w.factory('N_qcd_%s[0,0,999999999999999.]'%(cat))
         w.factory("FormulaVar::N_signal_postfit_%s('@0*@1',{mu,N_signal_%s})"%(cat,cat))
         w.factory("SUM::model_%s( N_signal_postfit_%s*pdf_signal_%s, N_qcd_%s*pdf_qcd, N_other_%s*pdf_other_%s)"%(cat,cat,cat,cat,cat,cat) )
         
         pdf=w.pdf("model_%s"%(cat))
         data=w.data("roohist_data_%s"%(cat))
-        pdf.fitTo(data,RooFit.Extended())
+        pdf.fitTo(data,RooFit.Extended(True))
 
-        nllSet.add( pdf.createNLL(data) )
+        nllSet.add( pdf.createNLL(data,RooFit.Extended(True)) )
 
     #now perform a combined fit by summing up the log likelihoods
     nll=RooAddition('nll','nll',nllSet)
     minuit=RooMinuit(nll)
     minuit.migrad()
-    minuit.hesse() 
+    minuit.hesse()
     getattr(w,'import')(nll)
 
     #save for posterity

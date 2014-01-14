@@ -49,7 +49,7 @@ for idx,p in enumerate(processes):
         hptproc.Add(hpt)
         hpt.SetDirectory(0)
         hptnoniso.SetDirectory(inF)
-        tree.Draw('leg1_pt>>leg1ptnoniso','abs(cat)==13 && leg1_relIso > 0.20','goff')
+        tree.Draw('leg1_pt>>leg1ptnoniso','abs(cat)==13 && leg1_relIso > 0.3 && leg1_relIso<0.5','goff')
         hptnonisoproc.Add(hptnoniso)
         hptnoniso.SetDirectory(0)
         hmet.SetDirectory(inF)
@@ -57,7 +57,7 @@ for idx,p in enumerate(processes):
         hmetproc.Add(hmet)
         hmet.SetDirectory(0)
         hmetnoniso.SetDirectory(inF)
-        tree.Draw('leg2_pt>>leg2ptnoniso','abs(cat)==13 && leg1_relIso > 0.20','goff')
+        tree.Draw('leg2_pt>>leg2ptnoniso','abs(cat)==13 && leg1_relIso > 0.3 && leg1_relIso<0.5','goff')
         hmetnonisoproc.Add(hmetnoniso)
         hmetnoniso.SetDirectory(0)
 
