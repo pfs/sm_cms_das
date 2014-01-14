@@ -21,20 +21,18 @@ def showFitResults(w,cat) :
     data=w.data('roohist_data_'+cat)
     data.plotOn(frame, RooFit.Name('data'))
     pdf=w.pdf('model_'+cat)
-    #pdfSubSet=RooArgSet(w.pdf('pdf_other_%s'%(cat) ))
-    pdfSubSet=RooArgSet(w.pdf('pdf_signal_%s'%(cat) ))
+    pdfSubSet=RooArgSet(w.pdf('pdf_other_%s'%(cat) ))
     pdf.plotOn(frame,
                RooFit.Components( pdfSubSet ),
                RooFit.MoveToBack(), RooFit.FillColor(592), RooFit.DrawOption('lf'), RooFit.Name('other') )
-    pdfSubSet=RooArgSet(w.pdf('pdf_other_%s'%(cat) ), w.pdf('pdf_signal'))
-    #pdfSubSet=RooArgSet(w.pdf('pdf_other_%s'%(cat) ), w.pdf('pdf_qcd'))
+    pdfSubSet=RooArgSet(w.pdf('pdf_other_%s'%(cat) ), w.pdf('pdf_qcd'))
     pdf.plotOn(frame,
                RooFit.Components( pdfSubSet ),
                RooFit.MoveToBack(), RooFit.FillColor(17), RooFit.DrawOption('lf'), RooFit.Name('mj') )
-#    pdfSubSet=RooArgSet(w.pdf('pdf_signal_%s'%(cat) ), w.pdf('pdf_other_%s'%(cat) ), w.pdf('pdf_qcd'))
-#    pdf.plotOn(frame,
-#               RooFit.Components( pdfSubSet ),
-#               RooFit.MoveToBack(), RooFit.FillColor(614), RooFit.DrawOption('lf'), RooFit.Name('signal') )
+    pdfSubSet=RooArgSet(w.pdf('pdf_signal_%s'%(cat) ), w.pdf('pdf_other_%s'%(cat) ), w.pdf('pdf_qcd'))
+    pdf.plotOn(frame,
+               RooFit.Components( pdfSubSet ),
+               RooFit.MoveToBack(), RooFit.FillColor(614), RooFit.DrawOption('lf'), RooFit.Name('signal') )
     frame.Draw()
     frame.GetYaxis().SetTitle('Events')
     frame.GetXaxis().SetTitle('Missing transverse energy [GeV]')

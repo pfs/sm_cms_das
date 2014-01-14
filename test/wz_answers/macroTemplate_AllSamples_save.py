@@ -14,7 +14,7 @@ processes=getProcesses(jsonUrl="test/wz/wz_samples.json",getMC=True,getData=True
 #loop over the different processes
 for idx,p in enumerate(processes):
     files=getFilesForProcess(jsonUrl="test/wz/wz_samples.json",tag=p,inDir="/store/cmst3/user/psilva/CMSDAS_v2/summary/")
-    lumi=19  #update the luminosity to the one in data
+    lumi=18.7  #update the luminosity to the one in data
     xsec=0
     totalSelected=0
     totalGenerated=0
@@ -29,13 +29,13 @@ for idx,p in enumerate(processes):
         tree=inF.Get("data/data")
 
         #increment the total selected and generated
-        totalSelected=totalSelected+tree.GetEntries("abs(cat)==13")
+        totalSelected=totalSelected+tree.GetEntries("abs(cat)==13 && leg1_relIso<0.12")
         totalGenerated=totalGenerated+inF.Get("iniEvents")[0]
         xsec=inF.Get("crossSection")[0]
          
         #project the tree to the base histogram and add it to the total expectations for this process
         hpt.SetDirectory(inF)
-        tree.Draw('leg1_pt>>leg1pt','abs(cat)==13','goff')
+        tree.Draw('leg1_pt>>leg1pt','abs(cat)==13 && leg1_relIso<0.12','goff')
         hproc.Add(hpt)
         hpt.SetDirectory(0)
         

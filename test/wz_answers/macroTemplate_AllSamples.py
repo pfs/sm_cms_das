@@ -18,7 +18,7 @@ for p in processes:
         tree=inF.Get("data/data")
 
         #increment the total selected and generated
-        totalSelected=totalSelected+tree.GetEntries("abs(cat)==13")
+        totalSelected=totalSelected+tree.GetEntries("abs(cat)==13 && leg1_relIso<0.12")
         totalGenerated=totalGenerated+inF.Get("iniEvents")[0]
         xsec=inF.Get("crossSection")[0]
 

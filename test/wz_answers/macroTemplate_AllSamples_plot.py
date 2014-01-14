@@ -30,13 +30,13 @@ for idx,p in enumerate(processes):
         tree=inF.Get("data/data")
 
         #increment the total selected and generated
-        totalSelected=totalSelected+tree.GetEntries("abs(cat)==13")
+        totalSelected=totalSelected+tree.GetEntries("abs(cat)==13 && leg1_relIso<0.12")
         totalGenerated=totalGenerated+inF.Get("iniEvents")[0]
         xsec=inF.Get("crossSection")[0]
          
         #project the tree to the base histogram and add it to the total expectations for this process
         hpt.SetDirectory(inF)
-        tree.Draw('leg1_pt>>leg1pt','abs(cat)==13','goff')
+        tree.Draw('leg1_pt>>leg1pt','abs(cat)==13 && leg1_relIso<0.12','goff')
         hproc.Add(hpt)
         hpt.SetDirectory(0)
         
