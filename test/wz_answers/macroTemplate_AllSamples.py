@@ -27,4 +27,5 @@ for p in processes:
     #re-scale the yields according to the cross section
     nExpected=xsec*lumi*totalSelected/totalGenerated
     nExpectedErr=xsec*lumi*math.sqrt(totalSelected)/totalGenerated
-    print "N(%s)=%3.3f +/- %3.3f"%(p,nExpected,nExpectedErr)
+    print "N(%-14s) = %8.3f +/- %3.3f" % (p,nExpected,nExpectedErr)
+

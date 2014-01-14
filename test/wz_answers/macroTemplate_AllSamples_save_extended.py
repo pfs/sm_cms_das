@@ -32,7 +32,7 @@ for idx,p in enumerate(processes):
     hmetproc.SetDirectory(0)
     hmetnonisoproc=hmetnoniso.Clone(p+'_'+hmetnoniso.GetName())
     hmetnonisoproc.SetDirectory(0)
-    
+
     #loop over files
     for f in files:
         inF=ROOT.TFile.Open(f)
@@ -42,25 +42,25 @@ for idx,p in enumerate(processes):
         totalSelected=totalSelected+tree.GetEntries("abs(cat)==13 && leg1_relIso<0.12")
         totalGenerated=totalGenerated+inF.Get("iniEvents")[0]
         xsec=inF.Get("crossSection")[0]
-         
+
         #project the tree to the base histogram and add it to the total expectations for this process
         hpt.SetDirectory(inF)
-        tree.Draw('leg1_pt>>leg1pt','abs(cat)==13 && leg1_relIso<0.12','goff')
+        tree.Draw('leg1_pt>>leg1pt','abs(cat)==13 && leg1_relIso < 0.12','goff')
         hptproc.Add(hpt)
         hpt.SetDirectory(0)
         hptnoniso.SetDirectory(inF)
-        tree.Draw('leg1_pt>>leg1ptnoniso','abs(cat)==13 && leg1_relIso>0.2','goff')
+        tree.Draw('leg1_pt>>leg1ptnoniso','abs(cat)==13 && leg1_relIso > 0.20','goff')
         hptnonisoproc.Add(hptnoniso)
         hptnoniso.SetDirectory(0)
         hmet.SetDirectory(inF)
-        tree.Draw('leg2_pt>>leg2pt','abs(cat)==13 && leg1_relIso<0.12','goff')
+        tree.Draw('leg2_pt>>leg2pt','abs(cat)==13 && leg1_relIso < 0.12','goff')
         hmetproc.Add(hmet)
         hmet.SetDirectory(0)
         hmetnoniso.SetDirectory(inF)
-        tree.Draw('leg2_pt>>leg2ptnoniso','abs(cat)==13 && leg1_relIso>0.2','goff')
+        tree.Draw('leg2_pt>>leg2ptnoniso','abs(cat)==13 && leg1_relIso > 0.20','goff')
         hmetnonisoproc.Add(hmetnoniso)
         hmetnoniso.SetDirectory(0)
-        
+
         inF.Close()
 
     if xsec>=0 :
@@ -75,7 +75,7 @@ for idx,p in enumerate(processes):
     else:
         nExpected=totalSelected
         nExpectedErr=0
-    print "N(%s)=%3.3f +/- %3.3f"%(p,nExpected,nExpectedErr)
+    print "N(%-14s) = %8.3f +/- %3.3f" % (p,nExpected,nExpectedErr)
 
     #create a directory with the name of the process and store the histogram
     fOut.mkdir(p).cd()
