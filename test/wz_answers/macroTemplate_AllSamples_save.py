@@ -22,7 +22,7 @@ for idx,p in enumerate(processes):
     #replicate the base histogram for a new process
     hproc=hpt.Clone(p+'_leg1pt')
     hproc.SetDirectory(0)
-    
+
     #loop over files
     for f in files:
         inF=ROOT.TFile.Open(f)
@@ -32,13 +32,13 @@ for idx,p in enumerate(processes):
         totalSelected=totalSelected+tree.GetEntries("abs(cat)==13")
         totalGenerated=totalGenerated+inF.Get("iniEvents")[0]
         xsec=inF.Get("crossSection")[0]
-         
+
         #project the tree to the base histogram and add it to the total expectations for this process
         hpt.SetDirectory(inF)
-        tree.Draw('leg1_pt>>leg1pt','abs(cat)==13','goff')
+        tree.Draw('leg1_pt>>leg1pt','abs(cat)==13 && leg1_relIso < 0.12','goff')
         hproc.Add(hpt)
         hpt.SetDirectory(0)
-        
+
         inF.Close()
 
     if xsec>=0 :
@@ -50,7 +50,7 @@ for idx,p in enumerate(processes):
     else:
         nExpected=totalSelected
         nExpectedErr=0
-    print "N(%s)=%3.3f +/- %3.3f"%(p,nExpected,nExpectedErr)
+    print "N(%-14s) = %8.3f +/- %3.3f" % (p,nExpected,nExpectedErr)
 
     #create a directory with the name of the process and store the histogram
     fOut.mkdir(p).cd()
