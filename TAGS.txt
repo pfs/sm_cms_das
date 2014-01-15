@@ -1,8 +1,6 @@
 git cms-addpkg PhysicsTools/PatAlgos
 git cms-addpkg PhysicsTools/TagAndProbe
-git cms-merge-topic cms-analysis-tools:5_3_12_patch2-metUncertainties
-git cms-merge-topic cms-analysis-tools:5_3_12_patch2-newJECs
-git cms-merge-topic cms-analysis-tools:5_3_12_patch2-mvaElIdPatFunction
+
 git clone git@github.com:pfs/sm_cms_das UserCode/sm_cms_das
 
 echo "Thought you could do this with just one tag, eh?"
