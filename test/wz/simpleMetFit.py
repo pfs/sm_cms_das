@@ -33,7 +33,6 @@ def showFitResults(w,cat) :
                RooFit.MoveToBack(), RooFit.FillColor(17), RooFit.DrawOption('lf'), RooFit.Name('other') )
     pdfH=pdf.createHistogram('x',50)
     totalFit=w.var('N_other_%s'%(cat)).getVal()+w.var('N_qcd_%s'%(cat)).getVal()+w.var('N_signal_%s'%(cat)).getVal()  
-    print totalFit, pdfH.Integral()
     pdfH.Scale(totalFit/pdfH.Integral())
     
     frame.Draw()
