@@ -42,12 +42,14 @@
 #include "RooCategory.h"
 #endif
 
+using namespace std;
+
 typedef ROOT::Math::LorentzVector<ROOT::Math::PtEtaPhiM4D<double> > LorentzVector;
 
 //=== FUNCTION DECLARATIONS ======================================================================================
 
 //Generate Toys of a fit model
-TTree* toyHist(int iNToys, bool iDoMu,std::string iName,TH1D *iData,TH1D *iW,TH1D *iEWK,TH1D *iAntiData,TH1D *iAntiW,TH1D *iAntiEWK);
+TTree* toyHist(int iNToys, bool iDoMu,std::string iName,TH1D *iData,TH1D *iW,TH1D *iEWK,TH1D *iAntiData,TH1D *iAntiW,TH1D *iAntiEWK,double *iResults);
 
 //Fit histogram with the default function and plot it
 double* fitHist(TCanvas *iC, bool iDoMu,int iPlot, std::string iName,TH1D *iData,TH1D *iW,TH1D *iEWK,TH1D *iAntiData,TH1D *iAntiW,TH1D *iAntiEWK,const Double_t METMAX,const Int_t NBINS,const Double_t lumi,const Int_t Ecm,int iAltQCD=-1);
@@ -66,14 +68,30 @@ void printChi2AndKSResults(ostream& os,
 // make webpage
 void makeHTML(const TString outDir);
 
+// Global Hists for generating best fits from fit to alternative toy
+TH1D *fBestFit     = 0;
+TH1D *fAntiBestFit = 0;
 
 //=== MAIN MACRO ================================================================================================= 
-void fitWe(const TString  outputDir="test",   // output directory
-           const Double_t lumi=18.7,        // integrated luminosity (/fb)
+void fitWe(const TString  outputDir="test",  // output directory
+           const Double_t lumi=18.7,         // integrated luminosity (/fb)
 	   const Int_t    Ecm=8,
-	   const Bool_t   doMu=true// center-of-mass energy
+	   const Bool_t   doMu=true,         // center-of-mass energy
+	   const Int_t    plotOption=1,      // Set Options below
+	   const Int_t    fitOption=-1
 ) {
   gBenchmark->Start("fitWe");
+  //plotOptions
+  //plotOption == 0 fit and return results
+  //plotOption == 1 plot and return results
+  //plotOption == 2 plot, dump text file, and return results
+  //plotOption == 3 plot, set fBestFit and fAntiBestFit to current best fits, generate toys of it 
+
+  //fitOption
+  //-1 Use the default fit
+  // 0 Use the electron fit
+  // 1 Use the muon fit
+  // 2 Use the electron stystematics fit 
 
   //--------------------------------------------------------------------------------------------------------------
   // Settings 
@@ -285,19 +303,22 @@ void fitWe(const TString  outputDir="test",   // output directory
   c->cd(2)->SetTicky(1);
   gStyle->SetTitleOffset(1.400,"Y");
   
-  fitHist(c,doMu,2,"W" ,hDataMet, hWMet, hEWKMet,  hAntiDataMet, hAntiWMet, hAntiEWKMet,METMAX,NBINS,lumi,Ecm);
-  fitHist(c,doMu,2,"WP",hDataMetp,hWMetp,hEWKMetp,hAntiDataMetp,hAntiWMetp,hAntiEWKMetp,METMAX,NBINS,lumi,Ecm);
-  fitHist(c,doMu,2,"WM",hDataMetm,hWMetm,hEWKMetm,hAntiDataMetm,hAntiWMetm,hAntiEWKMetm,METMAX,NBINS,lumi,Ecm);
-  return;
+  double *lResults  = fitHist(c,doMu,plotOption,"W" ,hDataMet, hWMet, hEWKMet,  hAntiDataMet, hAntiWMet, hAntiEWKMet,METMAX,NBINS,lumi,Ecm,fitOption);
+  if(plotOption == 3) {hDataMet = fBestFit; hAntiDataMet = fAntiBestFit;}
+  double *lResultsP = fitHist(c,doMu,plotOption,"WP",hDataMetp,hWMetp,hEWKMetp,hAntiDataMetp,hAntiWMetp,hAntiEWKMetp,METMAX,NBINS,lumi,Ecm,fitOption);
+  if(plotOption == 3) {hDataMetp = fBestFit; hAntiDataMetp = fAntiBestFit;}
+  double *lResultsM = fitHist(c,doMu,plotOption,"WM",hDataMetm,hWMetm,hEWKMetm,hAntiDataMetm,hAntiWMetm,hAntiEWKMetm,METMAX,NBINS,lumi,Ecm,fitOption);
+  if(plotOption == 3) {hDataMetm = fBestFit; hAntiDataMetm = fAntiBestFit;}
   //Do Toys
   //Alterative Fit Model
   //Lepton EScale
   //Met Scale
   //EWK?
-  TFile *file = new TFile("toys.root","RECREATE"); file->cd();
-  TTree *biasResults  = toyHist(100,doMu,"W" ,hDataMet,  hWMet, hEWKMet,  hAntiDataMet, hAntiWMet, hAntiEWKMet);
-  TTree *biasResultsp = toyHist(100,doMu,"WP" ,hDataMet, hWMet, hEWKMet,  hAntiDataMet, hAntiWMet, hAntiEWKMet);
-  TTree *biasResultsm = toyHist(100,doMu,"WM" ,hDataMet, hWMet, hEWKMet,  hAntiDataMet, hAntiWMet, hAntiEWKMet);
+  if(plotOption != 3) return;
+  TFile *file = new TFile("toys.root","RECREATE"); 
+  TTree *biasResults  = toyHist(100,doMu,"W"  ,hDataMet,  hWMet,  hEWKMet,   hAntiDataMet,  hAntiWMet,  hAntiEWKMet ,lResults);
+  TTree *biasResultsp = toyHist(100,doMu,"WP" ,hDataMetp, hWMetp, hEWKMetp,  hAntiDataMetp, hAntiWMetp, hAntiEWKMetp,lResultsP);
+  TTree *biasResultsm = toyHist(100,doMu,"WM" ,hDataMetm, hWMetm, hEWKMetm,  hAntiDataMetm, hAntiWMetm, hAntiEWKMetm,lResultsM);
 
   biasResults ->Write();
   biasResultsp->Write();
@@ -311,7 +332,7 @@ void fitWe(const TString  outputDir="test",   // output directory
   //gBenchmark->Show("fitWe");
 }
 //=== FUNCTION DEFINITIONS ======================================================================================
-TTree* toyHist(int iNToys, bool iDoMu,std::string iName,TH1D *iData,TH1D *iW,TH1D *iEWK,TH1D *iAntiData,TH1D *iAntiW,TH1D *iAntiEWK) { 
+TTree* toyHist(int iNToys, bool iDoMu,std::string iName,TH1D *iData,TH1D *iW,TH1D *iEWK,TH1D *iAntiData,TH1D *iAntiW,TH1D *iAntiEWK,double *iOriginalResults) { 
   TCanvas *c = 0;
   TTree *tree = new TTree(("Toys"+iName).c_str(),("Toys"+iName).c_str());
   float *vals = new float[16];
@@ -332,17 +353,22 @@ TTree* toyHist(int iNToys, bool iDoMu,std::string iName,TH1D *iData,TH1D *iW,TH1
   tree->Branch("nantiqcd_e",&vals[13],"Val13/F");
   tree->Branch("sigma_e"   ,&vals[14],"Val14/F");
   tree->Branch("a1_e"      ,&vals[15],"Val15/F");
+  //Set The first entry of the tree to be the default values
+  for(int i1 = 0; i1 < 16; i1++) vals[i1] = float(iOriginalResults[i1]);
+  tree->Fill();
+
   TH1D *pData       = 0;
   TH1D *pAntiData   = 0;
   for(int i0 = 0; i0 < iNToys; i0++) { 
     std::stringstream pSS; pSS << "Hist" << i0;
     pData       = (TH1D*) iData    ->Clone((pSS.str()+"A").c_str());
     pAntiData   = (TH1D*) iAntiData->Clone((pSS.str()+"B").c_str());
+    for(int i1 = 0; i1 < pData    ->GetNbinsX()+1; i1++) pData    ->SetBinContent(i1,0);
+    for(int i1 = 0; i1 < pAntiData->GetNbinsX()+1; i1++) pAntiData->SetBinContent(i1,0);
     pData    ->FillRandom(iData,    iData    ->Integral());
     pAntiData->FillRandom(iAntiData,iAntiData->Integral());
-    //cout <<"==> " << pData->Integral() << " -- " << iData->Integral() << endl;
+    cout <<"==> " << pData->Integral() << " -- " << iData->Integral() << endl;
     double* pVals = fitHist(c,iDoMu,0,pSS.str(),pData,iW,iEWK,pAntiData,iAntiW,iAntiEWK,100,100,100,100);
-    cout << "===> Sigma : " << vals[6] << endl;
     for(int i1 = 0; i1 < 16; i1++) vals[i1] = float(pVals[i1]);
     tree->Fill();
     delete pData; delete pAntiData;
@@ -383,18 +409,26 @@ double* fitHist(TCanvas *iC, bool iDoMu,int iPlot, std::string iName,TH1D *iData
   RooDataHist aewkMet(("aewkMET"+iName).c_str(),("aewkMET"+iName).c_str(), RooArgSet(pfmet),iAntiEWK); RooHistPdf apdfEWK (("aewk"+iName).c_str(),("aewk"+iName).c_str(), pfmet,aewkMet, 1);
   
   // QCD Pdfs
-  CPepeModel0 qcd0(("qcd0"+iName).c_str(),pfmet);
-  CPepeModel1 qcd1(("qcd1"+iName).c_str(),pfmet);
-  CPepeModel2 qcd2(("qcd2"+iName).c_str(),pfmet);
-  RooGenericPdf *lQCD = qcd0.model;
-  if(iDoMu) lQCD = qcd1.model; 
+  CPepeModel0 qcd0 (("qcd0" +iName).c_str(),pfmet);
+  CPepeModel1 qcd1 (("qcd1" +iName).c_str(),pfmet);
+  CPepeModel2 qcd2 (("qcd2" +iName).c_str(),pfmet);
+  CPepeModel0 aqcd0(("aqcd0"+iName).c_str(),pfmet);
+  CPepeModel1 aqcd1(("aqcd1"+iName).c_str(),pfmet,qcd1.sigma);
+  CPepeModel2 aqcd2(("aqcd2"+iName).c_str(),pfmet);
+  RooGenericPdf *lQCD  =  qcd0.model;
+  RooGenericPdf *lAQCD = aqcd0.model;
+  if(iDoMu) lQCD  = qcd1.model; 
+  if(iDoMu) lAQCD = aqcd1.model; 
   if(iAltQCD == 0) lQCD = qcd0.model;
   if(iAltQCD == 1) lQCD = qcd1.model;
   if(iAltQCD == 2) lQCD = qcd2.model;
+  if(iAltQCD == 0) lAQCD = aqcd0.model;
+  if(iAltQCD == 1) lAQCD = aqcd1.model;
+  if(iAltQCD == 2) lAQCD = aqcd2.model;
   
   // Signal + Background PDFs
   RooAddPdf pdfMet (("pdfMet"+iName).c_str(), ("pdfMet" +iName).c_str(), RooArgList(pdfW ,pdfEWK ,*lQCD), RooArgList(nSig,nEWK,nQCD));  
-  RooAddPdf apdfMet(("apdfMet"+iName).c_str(),("apdfMet"+iName).c_str(), RooArgList(apdfW,apdfEWK,*lQCD), RooArgList(nAntiSig,nAntiEWK,nAntiQCD));  
+  RooAddPdf apdfMet(("apdfMet"+iName).c_str(),("apdfMet"+iName).c_str(), RooArgList(apdfW,apdfEWK,*lAQCD), RooArgList(nAntiSig,nAntiEWK,nAntiQCD));  
   
   // PDF for simultaneous fit
   RooCategory rooCat("rooCat","rooCat");
@@ -413,8 +447,10 @@ double* fitHist(TCanvas *iC, bool iDoMu,int iPlot, std::string iName,TH1D *iData
                         Import("Anti",   antiMet));
   
   RooFitResult *fitRes = 0;
-  if(!iDoMu) fitRes = pdfMet.fitTo(dataMet,Extended(),Minos(kTRUE),Save(kTRUE));
-  if( iDoMu) fitRes = pdfTotal.fitTo(dataTotal,Extended(),Minos(kTRUE),Save(kTRUE));
+  bool runMinos = kTRUE; 
+  if(iPlot == 0 || iPlot == 3) runMinos = kFALSE; //Remove Minos when running toys (too damn slow)
+  if(!iDoMu) fitRes = pdfMet  .fitTo(dataMet  ,Extended(),Minos(runMinos),Save(kTRUE));
+  if( iDoMu) fitRes = pdfTotal.fitTo(dataTotal,Extended(),Minos(runMinos),Save(kTRUE));
 
   double *lResults = new double[16];
   lResults[0]  = nSig.getVal(); 
@@ -423,9 +459,9 @@ double* fitHist(TCanvas *iC, bool iDoMu,int iPlot, std::string iName,TH1D *iData
   lResults[3]  = nAntiSig.getVal(); 
   lResults[4]  = nAntiEWK.getVal(); 
   lResults[5]  = nAntiQCD.getVal(); 
-  if( iDoMu) lResults[6]  = double(qcd0.sigma->getVal()); 
-  if(!iDoMu) lResults[6]  = double(qcd1.sigma->getVal()); 
-  std::cout << "================> Test : " << qcd0.sigma->getVal() << " -- " << lResults[6] << std::endl;
+  if(!iDoMu) lResults[6]  = double(qcd0.sigma->getVal()); 
+  if( iDoMu) lResults[6]  = double(qcd1.sigma->getVal()); 
+
   lResults[7]  = 0.;
   if(!iDoMu) lResults[7]  = qcd1.a1->getVal(); 
   lResults[8]   = nSig    .getPropagatedError(*fitRes);
@@ -438,7 +474,7 @@ double* fitHist(TCanvas *iC, bool iDoMu,int iPlot, std::string iName,TH1D *iData
   if(!iDoMu) lResults[14]  = qcd1.sigma->getError();
   if( iDoMu) lResults[15]  = 0;
   if(!iDoMu) lResults[15]  = qcd1.a1   ->getError();
-  if(!iPlot) return lResults;
+  if(iPlot == 0 ) return lResults;
   //
   // Use histogram version of fitted PDFs to make ratio plots
   // (Will also use PDF histograms later for Chi^2 and KS tests)
@@ -448,12 +484,31 @@ double* fitHist(TCanvas *iC, bool iDoMu,int iPlot, std::string iName,TH1D *iData
   TH1D *hMetDiff = makeDiffHist(iData,hPdfMet,"hMetDiff"+iName);
   hMetDiff->SetMarkerStyle(kFullCircle);
   hMetDiff->SetMarkerSize(0.9);
-   
+  
   TH1D *hPdfAntiMet = (TH1D*)(apdfMet.createHistogram(("hPdfAntiMet"+iName).c_str(), pfmet));
-  hPdfMet->Scale((nAntiSig.getVal()+nAntiEWK.getVal()+nAntiQCD.getVal())/hPdfAntiMet->Integral());
+  hPdfAntiMet->Scale((nAntiSig.getVal()+nAntiEWK.getVal()+nAntiQCD.getVal())/hPdfAntiMet->Integral());
   TH1D *hAntiMetDiff = makeDiffHist(iAntiData,hPdfAntiMet,"hAntiMetDiff"+iName);
   hAntiMetDiff->SetMarkerStyle(kFullCircle);
   hAntiMetDiff->SetMarkerSize(0.9);
+  if(iPlot == 3 ) {
+    //Build best fit QCD with default W and EWK Shap
+    TH1D *hPdfMetQCD  = (TH1D*)(lQCD ->createHistogram(("hPdfMetQCD"    +iName).c_str(), pfmet));
+    TH1D *hPdfAMetQCD = (TH1D*)(lAQCD->createHistogram(("hPdfAntiMetQCD"+iName).c_str(), pfmet));
+    hPdfMetQCD ->Scale(nQCD    .getVal()/hPdfMetQCD ->Integral());
+    hPdfAMetQCD->Scale(nAntiQCD.getVal()/hPdfAMetQCD->Integral());
+
+    TH1D *pW    = (TH1D*) iW      ->Clone("WForToys");    pW   ->Scale(nSig    .getVal()/pW   ->Integral());
+    TH1D *pEWK  = (TH1D*) iEWK    ->Clone("EWKForToys");  pEWK ->Scale(nEWK    .getVal()/pEWK ->Integral());
+    TH1D *pAW   = (TH1D*) iAntiW  ->Clone("AWForToys");   pAW  ->Scale(nAntiSig.getVal()/pAW  ->Integral());
+    TH1D *pAEWK = (TH1D*) iAntiEWK->Clone("AEWKForToys"); pAEWK->Scale(nAntiEWK.getVal()/pAEWK->Integral());
+    hPdfMetQCD ->Add(pW);
+    hPdfMetQCD ->Add(pEWK);
+    hPdfAMetQCD->Add(pAW);
+    hPdfAMetQCD->Add(pAEWK);
+    fBestFit     = hPdfMetQCD; 
+    fAntiBestFit = hPdfAMetQCD; 
+    return lResults;
+  }
 
   //--------------------------------------------------------------------------------------------------------------
   // Make plots 
