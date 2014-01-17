@@ -56,9 +56,8 @@ for idx,p in enumerate(processes):
         totalSelected=totalSelected+tree.GetEntries("cat==-169")
         totalGenerated=totalGenerated+inF.Get("iniEvents")[0]
         xsec=inF.Get("crossSection")[0]
-         
-        #project the tree to the base histogram and add it to the total expectations for this process
-        
+       
+        #Method 1: project the tree to the base histogram and add it to the total expectations for this process
         hvpt.SetDirectory(inF)
         tree.Draw('v_pt>>vpt','cat==-169','goff') # plots the reco boson pT (v_pt) variable in the histogram named "vpt" for events with cat==-169 (Z di-muon)
         hvptproc.Add(hvpt)
@@ -73,6 +72,17 @@ for idx,p in enumerate(processes):
         tree.Draw('genv_pt:v_pt>>vptmigrationmatrix','weight*(cat==-169)','goff') # plots the 2D response matrix reco vs gen boson pT (genv_pt:v_pt) variable in the histogram named "vptmigrationmatrix" for events with cat==-169 (Z di-muon) also reweighting the pileup
         hvptmigrationmatrixproc.Add(hvptmigrationmatrix)
         hvptmigrationmatrix.SetDirectory(0)
+
+        #Method 2: run over the tree
+        #for n in xrange(0,tree.GetEntriesFast()) :
+        #    tree.GetEntry(n)
+        #    if tree.cat!=-169 : continue
+        #    effWeight=1.0
+        #    puWeight=tree.weight
+        #    eventWeight=effWeight*puWeight
+        #    hvptproc.Fill               (tree.v_pt,            eventWeight)
+        #    hgenvptproc.Fill            (tree.genv_pt,         eventWeight)
+        #    hvptmigrationmatrixproc.Fill(tree.genv_pt,tree.v_pt,eventWeight)
         
         inF.Close()
 
