@@ -414,7 +414,7 @@ double* fitHist(TCanvas *iC, bool iDoMu,int iPlot, std::string iName,TH1D *iData
 	CPepeModel1 qcd1 (("qcd1" +iName).c_str(),pfmet);
 	CPepeModel2 qcd2 (("qcd2" +iName).c_str(),pfmet);
 	CPepeModel0 aqcd0(("aqcd0"+iName).c_str(),pfmet);
-	CPepeModel1 aqcd1(("aqcd1"+iName).c_str(),pfmet,qcd1.sigma);
+	CPepeModel1 aqcd1(("aqcd1"+iName).c_str(),pfmet,qcd1.a1);
 	CPepeModel2 aqcd2(("aqcd2"+iName).c_str(),pfmet);
 	RooGenericPdf *lQCD  =  qcd0.model;
 	RooGenericPdf *lAQCD = aqcd0.model;
@@ -601,10 +601,10 @@ double* fitHist(TCanvas *iC, bool iDoMu,int iPlot, std::string iName,TH1D *iData
 		antiMet.plotOn(awmframe,MarkerStyle(kFullCircle),MarkerSize(0.9),DrawOption("ZP"));
 		apdfMet.plotOn(awmframe,FillColor(fillcolorW),DrawOption("F"));
 		apdfMet.plotOn(awmframe,LineColor(linecolorW));
-		apdfMet.plotOn(awmframe,Components(RooArgSet(apdfEWK,*lQCD)),FillColor(fillcolorEWK),DrawOption("F"));
-		apdfMet.plotOn(awmframe,Components(RooArgSet(apdfEWK,*lQCD)),LineColor(linecolorEWK));
-		apdfMet.plotOn(awmframe,Components(RooArgSet(*lQCD)),FillColor(fillcolorQCD),DrawOption("F"));
-		apdfMet.plotOn(awmframe,Components(RooArgSet(*lQCD)),LineColor(linecolorQCD));
+		apdfMet.plotOn(awmframe,Components(RooArgSet(apdfEWK,*lAQCD)),FillColor(fillcolorEWK),DrawOption("F"));
+		apdfMet.plotOn(awmframe,Components(RooArgSet(apdfEWK,*lAQCD)),LineColor(linecolorEWK));
+		apdfMet.plotOn(awmframe,Components(RooArgSet(*lAQCD)),FillColor(fillcolorQCD),DrawOption("F"));
+		apdfMet.plotOn(awmframe,Components(RooArgSet(*lAQCD)),LineColor(linecolorQCD));
 		apdfMet.plotOn(awmframe,Components(RooArgSet(apdfW)),LineColor(linecolorW),LineStyle(2));
 		antiMet.plotOn(awmframe,MarkerStyle(kFullCircle),MarkerSize(0.9),DrawOption("ZP"));
 
